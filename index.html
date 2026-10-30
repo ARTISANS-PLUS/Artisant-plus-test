@@ -541,7 +541,58 @@ let SESSION = JSON.parse(localStorage.getItem("artisansPlusSession")||"null");
 let AUTH_USER = null;
 let AUTH_READY = false;
 function persistSession(){ localStorage.setItem("artisansPlusSession", JSON.stringify(SESSION)); }
-function currentUser(){ return SESSION ? DB.users.find(u=>u.id===SESSION.id) : null; }
+function currentUser(){
+  return AUTH_USER;
+}
+
+async function loadUserProfile(userId){
+  const { data: profile, error } = await window.supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
+
+  if(error){
+    console.error("Erreur de récupération du profil :", error);
+    return null;
+  }
+
+  if(!profile) return null;
+
+  let user = {
+    id: profile.id,
+    name: profile.full_name,
+    email: profile.email,
+    phone: profile.phone,
+    role: profile.role,
+    blocked: profile.is_suspended
+  };
+
+  if(profile.role === "artisan"){
+    const { data: artisanProfile, error: artisanError } = await window.supabase
+      .from("artisan_profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if(artisanError){
+      console.error("Erreur de récupération du profil artisan :", artisanError);
+    }
+
+    if(artisanProfile){
+      user.trades = artisanProfile.trades;
+      user.bio = artisanProfile.bio;
+      user.minPrice = artisanProfile.min_price;
+      user.available = artisanProfile.is_available;
+      user.verified = artisanProfile.is_verified;
+      user.rating = artisanProfile.rating;
+      user.ratingsCount = artisanProfile.rating_count;
+    }
+  }
+
+  AUTH_USER = user;
+  return user;
+}
 
 /* ---------- UTILS ---------- */
 function toast(msg, type){
