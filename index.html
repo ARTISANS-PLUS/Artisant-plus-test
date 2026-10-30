@@ -594,6 +594,49 @@ async function loadUserProfile(userId){
   return user;
 }
 
+async function initializeSupabaseAuth(){
+  if(!window.supabase){
+    console.error("Supabase n'est pas disponible.");
+    AUTH_READY = true;
+    render();
+    return;
+  }
+
+  const { data, error } = await window.supabase.auth.getSession();
+
+  if(error){
+    console.error("Erreur de récupération de session :", error);
+  }
+
+  if(data && data.session && data.session.user){
+    await loadUserProfile(data.session.user.id);
+  } else {
+    AUTH_USER = null;
+  }
+
+  AUTH_READY = true;
+  render();
+
+  window.supabase.auth.onAuthStateChange((event, session) => {
+    if(event === "SIGNED_OUT"){
+      AUTH_USER = null;
+      AUTH_READY = true;
+      render();
+    } else if(
+      event === "SIGNED_IN" ||
+      event === "TOKEN_REFRESHED" ||
+      event === "USER_UPDATED"
+    ){
+      if(session && session.user){
+        loadUserProfile(session.user.id).then(() => {
+          AUTH_READY = true;
+          render();
+        });
+      }
+    }
+  });
+}
+
 /* ---------- UTILS ---------- */
 function toast(msg, type){
   const el = document.createElement("div");
