@@ -792,7 +792,22 @@ async function doLogin(){
   }
 }
 
-function logout(){ SESSION=null; persistSession(); go("/"); }
+
+async function logout(){
+  const { error } = await window.supabase.auth.signOut();
+
+  if(error){
+    console.error("Erreur de déconnexion :", error);
+    toast("Impossible de vous déconnecter.", "err");
+    return;
+  }
+
+  AUTH_USER = null;
+  AUTH_READY = true;
+  go("/");
+  render();
+}
+
 
 function renderRegister(defaultRole){
   const countryOpts = Object.entries(COUNTRIES).map(([k,c])=>`<option value="${k}">${c.flag} ${c.name} (${c.dial})</option>`).join("");
