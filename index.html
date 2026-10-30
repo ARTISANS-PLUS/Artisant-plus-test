@@ -711,7 +711,12 @@ function render(){
   if(path==="/register"){ authView.classList.remove("hidden"); renderRegister(params.get("role")||"client"); return; }
 
   // Toutes les autres routes nécessitent une session
-  if(!SESSION || !currentUser()){ go("/login"); return; }
+if(!AUTH_READY) return;
+
+if(!currentUser()){
+  go("/login");
+  return;
+}
   appShell.classList.add("active");
   renderAppShell(path, params);
 }
