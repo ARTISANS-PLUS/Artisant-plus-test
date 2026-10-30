@@ -538,7 +538,8 @@ function seedDB(){
 
 let DB = loadDB();
 let SESSION = JSON.parse(localStorage.getItem("artisansPlusSession")||"null");
-
+let AUTH_USER = null;
+let AUTH_READY = false;
 function persistSession(){ localStorage.setItem("artisansPlusSession", JSON.stringify(SESSION)); }
 function currentUser(){ return SESSION ? DB.users.find(u=>u.id===SESSION.id) : null; }
 
