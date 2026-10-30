@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script type="module" src="supabase-client.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Artisans+ | Trouvez un artisan de confiance près de chez vous</title>
+<meta name="description" content="Artisans+ met en relation clients et artisans qualifiés au Togo, Bénin, Côte d'Ivoire, Sénégal, Burkina Faso, Mali et Rwanda.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%23161F38'/%3E%3Cpath d='M32 14l6.5 12.9L52 29l-10 9.6L44.5 52 32 45.2 19.5 52 22 38.6 12 29l13.5-2.1z' fill='%23E8A33D'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+/* =========================================================
+   ARTISANS+ — DESIGN TOKENS
+   Palette inspirée des textiles wax & du bogolan ouest-africain :
+   indigo profond, ocre, terre cuite, émeraude, crème.
+   ========================================================= */
+:root{
+  --indigo:#141B33;
+  --indigo-2:#1E2A4D;
+  --indigo-3:#283968;
+  --cream:#F8F1E1;
+  --paper:#FFFCF6;
+  --ochre:#E8A33D;
+  --ochre-dark:#C97F1F;
+  --clay:#C15A3B;
+  --emerald:#2F6D5C;
+  --emerald-dark:#204E42;
+  --ink:#1B1A17;
+  --muted:#6B6455;
+  --line:#E7DDC7;
+  --danger:#B3402C;
+  --radius:14px;
+  --shadow:0 10px 30px rgba(20,27,51,.12);
+  --font-display:'Fraunces', serif;
+  --font-body:'Manrope', sans-serif;
+  --font-mono:'IBM Plex Mono', monospace;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0; font-family:var(--font-body); color:var(--ink); background:var(--paper);
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--font-display); margin:0 0 .4em; font-weight:700; letter-spacing:-.01em;}
+p{line-height:1.55; color:var(--muted);}
+a{color:inherit;}
+button{font-family:var(--font-body); cursor:pointer;}
+.mono{font-family:var(--font-mono);}
+img{max-width:100%;display:block;}
+::selection{background:var(--ochre); color:var(--indigo);}
+:focus-visible{outline:3px solid var(--ochre); outline-offset:2px;}
+@media (prefers-reduced-motion: reduce){ *{animation-duration:.001ms !important; transition-duration:.001ms !important;} }
+
+/* Layout helpers */
+.wrap{max-width:1180px; margin:0 auto; padding:0 24px;}
+.hidden{display:none !important;}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:13px 22px; border-radius:999px; border:none; font-weight:700; font-size:.95rem;
+  transition:transform .15s ease, box-shadow .15s ease; text-decoration:none;
+}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--ochre); color:var(--indigo); box-shadow:0 6px 18px rgba(232,163,61,.35);}
+.btn-primary:hover{background:var(--ochre-dark);}
+.btn-dark{background:var(--indigo); color:var(--cream);}
+.btn-dark:hover{background:var(--indigo-2);}
+.btn-outline{background:transparent; border:1.5px solid var(--indigo); color:var(--indigo);}
+.btn-outline:hover{background:var(--indigo); color:var(--cream);}
+.btn-emerald{background:var(--emerald); color:#fff;}
+.btn-emerald:hover{background:var(--emerald-dark);}
+.btn-danger{background:var(--danger); color:#fff;}
+.btn-ghost{background:transparent;border:none;color:var(--indigo);text-decoration:underline;padding:6px 4px;font-weight:600;}
+.btn-sm{padding:8px 16px; font-size:.82rem; border-radius:999px;}
+.btn-block{width:100%;}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:.72rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;}
+.pill-ochre{background:rgba(232,163,61,.18); color:var(--ochre-dark);}
+.pill-emerald{background:rgba(47,109,92,.14); color:var(--emerald-dark);}
+.pill-clay{background:rgba(193,90,59,.14); color:var(--clay);}
+.pill-muted{background:#EFEAE0; color:var(--muted);}
+
+/* Wax-print divider (signature motif) */
+.wax-divider{
+  height:14px; width:100%;
+  background-image:repeating-linear-gradient(135deg, var(--ochre) 0 8px, var(--clay) 8px 16px, var(--indigo) 16px 24px);
+  opacity:.9;
+}
+
+/* ===================== NAV ===================== */
+.topnav{
+  position:sticky; top:0; z-index:50; background:rgba(248,241,225,.92); backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.topnav .wrap{display:flex; align-items:center; justify-content:space-between; height:72px;}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:1.3rem;color:var(--indigo);text-decoration:none;}
+.brand svg{width:34px;height:34px;}
+.navlinks{display:flex;align-items:center;gap:26px;font-weight:600;font-size:.92rem;}
+.navlinks a{cursor:pointer;}
+.nav-actions{display:flex;align-items:center;gap:10px;}
+.bell-wrap{position:relative;}
+.bell-btn{background:none;border:none;font-size:1.3rem;position:relative;padding:6px;}
+.bell-dot{position:absolute; top:2px; right:2px; width:9px;height:9px;border-radius:50%;background:var(--clay); border:2px solid var(--cream);}
+.dropdown{position:absolute; right:0; top:44px; width:320px; background:var(--paper); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:8px; max-height:400px; overflow:auto;}
+.dropdown .item{padding:10px 12px; border-radius:8px; font-size:.85rem;}
+.dropdown .item:hover{background:#F1EADA;}
+.dropdown .item b{display:block;color:var(--indigo);}
+
+/* ===================== HERO ===================== */
+.hero{background:radial-gradient(1200px 600px at 80% -10%, #24325C 0%, var(--indigo) 55%, #0F1526 100%); color:var(--cream); position:relative; overflow:hidden;}
+.hero .wrap{display:grid; grid-template-columns:1.1fr .9fr; gap:50px; align-items:center; padding:80px 24px 90px;}
+.eyebrow{font-family:var(--font-mono); font-size:.78rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ochre); margin-bottom:16px; display:flex; align-items:center; gap:10px;}
+.eyebrow::before{content:"";width:26px;height:2px;background:var(--ochre);display:inline-block;}
+.hero h1{font-size:3.1rem; line-height:1.04; color:#fff; max-width:640px;}
+.hero h1 em{font-style:italic; color:var(--ochre);}
+.hero p.lead{color:#C9CEE0; font-size:1.08rem; max-width:520px; margin-bottom:28px;}
+.hero-ctas{display:flex; gap:14px; flex-wrap:wrap;}
+.hero-stats{display:flex; gap:34px; margin-top:44px; flex-wrap:wrap;}
+.hero-stats div b{display:block; font-family:var(--font-mono); font-size:1.5rem; color:var(--ochre);}
+.hero-stats div span{font-size:.78rem; color:#9AA2C0;}
+
+/* Radar / GPS signature element */
+.radar-card{background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:26px; backdrop-filter:blur(6px);}
+.radar-box{position:relative; width:100%; aspect-ratio:1/1; max-width:320px; margin:0 auto; display:flex; align-items:center; justify-content:center;}
+.radar-ring{position:absolute; border:1px solid rgba(232,163,61,.35); border-radius:50%;}
+.radar-ring.r1{inset:0;}
+.radar-ring.r2{inset:15%;}
+.radar-ring.r3{inset:30%;}
+.radar-sweep{position:absolute; inset:0; border-radius:50%; background:conic-gradient(from 0deg, rgba(232,163,61,.55), transparent 35%); animation:spin 3.2s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.radar-center{width:14px;height:14px;background:var(--ochre); border-radius:50%; box-shadow:0 0 0 6px rgba(232,163,61,.25); z-index:2;}
+.radar-dot{position:absolute; width:10px;height:10px;border-radius:50%; background:var(--emerald); box-shadow:0 0 0 5px rgba(47,109,92,.3);}
+.radar-caption{text-align:center; font-family:var(--font-mono); font-size:.75rem; color:#B9C0DE; margin-top:14px;}
+
+/* ===================== SECTIONS ===================== */
+section{padding:86px 0;}
+.section-head{max-width:640px; margin-bottom:48px;}
+.section-head .eyebrow{color:var(--clay);}
+.section-head h2{font-size:2.2rem; color:var(--indigo);}
+.grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:24px;}
+.grid-2{display:grid; grid-template-columns:1fr 1fr; gap:24px;}
+.card{background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:28px; box-shadow:var(--shadow);}
+.card h3{font-size:1.15rem; color:var(--indigo);}
+.icon-badge{width:48px;height:48px;border-radius:12px;background:rgba(47,109,92,.12); display:flex;align-items:center;justify-content:center; font-size:1.4rem; margin-bottom:16px;}
+
+.how-steps{counter-reset:step; display:grid; grid-template-columns:repeat(4,1fr); gap:22px;}
+.how-step{position:relative; padding-top:10px;}
+.how-step .num{font-family:var(--font-mono); font-size:.85rem; color:var(--clay); font-weight:700;}
+.how-step h4{color:var(--indigo); margin:8px 0 6px; font-size:1.05rem;}
+
+.trades-band{background:var(--indigo); color:var(--cream);}
+.trades-band .section-head h2{color:#fff;}
+.trades-band .section-head p{color:#AEB4D2;}
+.trade-chips{display:flex; flex-wrap:wrap; gap:10px;}
+.trade-chip{background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); padding:8px 14px; border-radius:999px; font-size:.82rem;}
+
+.pricing-band .grid-2{grid-template-columns:1fr 1fr;}
+.price-card{border-radius:18px; padding:32px; position:relative; overflow:hidden;}
+.price-card.client{background:linear-gradient(160deg,#FBF3E3,#F3E4C8); border:1px solid var(--line);}
+.price-card.artisan{background:linear-gradient(160deg,var(--indigo),#232F55); color:#fff;}
+.price-card .tier{display:flex; justify-content:space-between; align-items:baseline; margin:18px 0;}
+.price-card .tier .amt{font-family:var(--font-mono); font-size:1.5rem; font-weight:700;}
+.price-card ul{padding-left:18px; margin:14px 0;}
+.price-card li{margin-bottom:6px; font-size:.9rem;}
+
+footer{background:var(--indigo); color:#AEB4D2; padding:50px 0 30px; font-size:.88rem;}
+footer .wrap{display:flex; justify-content:space-between; flex-wrap:wrap; gap:20px;}
+footer a{opacity:.85;} footer a:hover{opacity:1;}
+
+/* ===================== APP SHELL (dashboard) ===================== */
+.app-shell{display:none; min-height:100vh; background:#F3EEE1;}
+.app-shell.active{display:grid; grid-template-columns:260px 1fr;}
+.sidebar{background:var(--indigo); color:var(--cream); padding:24px 18px; display:flex; flex-direction:column; gap:6px;}
+.sidebar .brand{color:#fff; margin-bottom:18px;}
+.side-link{display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:10px; font-size:.9rem; font-weight:600; color:#C9CEE0; text-decoration:none; background:none; border:none; text-align:left; width:100%;}
+.side-link:hover{background:rgba(255,255,255,.06); color:#fff;}
+.side-link.active{background:rgba(232,163,61,.16); color:var(--ochre);}
+.side-foot{margin-top:auto; font-size:.75rem; color:#7A81A6; padding:10px 14px;}
+.main-area{padding:26px 32px 60px; max-width:1080px;}
+.main-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:26px; flex-wrap:wrap; gap:12px;}
+.main-head h1{font-size:1.7rem; color:var(--indigo);}
+.stat-row{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:26px;}
+.stat-box{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:18px;}
+.stat-box b{display:block; font-family:var(--font-mono); font-size:1.4rem; color:var(--indigo);}
+.stat-box span{font-size:.78rem; color:var(--muted);}
+
+.table{width:100%; border-collapse:collapse; background:var(--paper); border-radius:12px; overflow:hidden; border:1px solid var(--line);}
+.table th,.table td{padding:12px 14px; text-align:left; font-size:.86rem; border-bottom:1px solid var(--line);}
+.table th{background:#EFE7D3; color:var(--indigo); font-family:var(--font-mono); font-size:.72rem; text-transform:uppercase; letter-spacing:.05em;}
+.table tr:last-child td{border-bottom:none;}
+.table td .btn-sm{margin-right:6px;}
+
+.form-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+.field{display:flex; flex-direction:column; gap:6px; margin-bottom:16px;}
+.field.full{grid-column:1/-1;}
+.field label{font-size:.82rem; font-weight:700; color:var(--indigo);}
+.field small{color:var(--muted); font-size:.76rem;}
+input,select,textarea{
+  font-family:var(--font-body); padding:11px 13px; border-radius:9px; border:1.5px solid var(--line);
+  background:#fff; font-size:.92rem; width:100%;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--ochre);}
+.phone-row{display:flex; gap:8px;}
+.phone-row select{max-width:140px;}
+.checkbox-row{display:flex; align-items:center; gap:8px; font-size:.86rem;}
+.checkbox-row input{width:auto;}
+
+.tabs{display:flex; gap:6px; margin-bottom:22px; border-bottom:1.5px solid var(--line);}
+.tab-btn{background:none;border:none;padding:11px 18px;font-weight:700;font-size:.88rem;color:var(--muted); border-bottom:3px solid transparent; margin-bottom:-1.5px;}
+.tab-btn.active{color:var(--indigo); border-color:var(--ochre);}
+
+.trade-select-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px; max-height:280px; overflow:auto; border:1.5px solid var(--line); border-radius:10px; padding:12px; background:#fff;}
+.trade-select-grid label{display:flex; gap:8px; align-items:center; font-size:.82rem; font-weight:500; color:var(--ink);}
+.trade-select-grid input{width:auto;}
+
+.artisan-result{display:flex; gap:16px; align-items:center; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:12px;}
+.avatar{width:52px;height:52px;border-radius:50%;background:var(--emerald); color:#fff; display:flex;align-items:center;justify-content:center; font-weight:700; font-family:var(--font-display); font-size:1.2rem; flex-shrink:0;}
+.artisan-result .info{flex:1;}
+.artisan-result .info h4{margin:0 0 2px; color:var(--indigo); font-size:1rem;}
+.stars{color:var(--ochre); font-size:.85rem;}
+.dist-badge{font-family:var(--font-mono); font-size:.78rem; color:var(--emerald-dark); font-weight:700;}
+
+.task-track-map{height:320px; border-radius:14px; overflow:hidden; border:1px solid var(--line); margin-bottom:16px;}
+.progress-bar{height:10px; background:#EFE7D3; border-radius:99px; overflow:hidden; margin:14px 0;}
+.progress-bar > div{height:100%; background:linear-gradient(90deg,var(--emerald),var(--ochre)); transition:width .4s ease;}
+.status-timeline{display:flex; justify-content:space-between; margin:20px 0; font-size:.75rem; color:var(--muted);}
+.status-timeline .st{text-align:center; flex:1; position:relative;}
+.status-timeline .st .dot{width:14px;height:14px;border-radius:50%;background:#DCD3BB; margin:0 auto 6px;}
+.status-timeline .st.done .dot{background:var(--emerald);}
+.status-timeline .st.now .dot{background:var(--ochre); box-shadow:0 0 0 4px rgba(232,163,61,.3);}
+
+.wallet-box{background:linear-gradient(135deg,var(--indigo),#2A3A6B); color:#fff; border-radius:16px; padding:26px; margin-bottom:24px;}
+.wallet-box .bal{font-family:var(--font-mono); font-size:2.1rem; font-weight:700; color:var(--ochre);}
+.wallet-methods{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:14px 0;}
+.pm-btn{border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:12px 8px; font-size:.78rem; font-weight:700; text-align:center;}
+.pm-btn.selected{border-color:var(--ochre); background:rgba(232,163,61,.12); color:var(--ochre-dark);}
+
+.rating-stars{font-size:2rem; letter-spacing:6px; cursor:pointer; color:#DCD3BB;}
+.rating-stars span.active{color:var(--ochre);}
+
+.modal-overlay{position:fixed; inset:0; background:rgba(20,27,51,.55); display:flex; align-items:center; justify-content:center; z-index:200; padding:20px;}
+.modal{background:var(--paper); border-radius:16px; padding:30px; max-width:460px; width:100%; max-height:88vh; overflow:auto; box-shadow:var(--shadow);}
+.modal h3{color:var(--indigo);}
+.modal-close{float:right; background:none;border:none;font-size:1.3rem;color:var(--muted);}
+
+.toast-wrap{position:fixed; top:20px; right:20px; z-index:400; display:flex; flex-direction:column; gap:10px;}
+.toast{background:var(--indigo); color:#fff; padding:14px 18px; border-radius:10px; font-size:.86rem; box-shadow:var(--shadow); border-left:4px solid var(--ochre); animation:slidein .25s ease;}
+.toast.err{border-left-color:var(--danger);}
+.toast.ok{border-left-color:var(--emerald);}
+@keyframes slidein{from{transform:translateX(30px);opacity:0;} to{transform:translateX(0);opacity:1;}}
+
+.empty-state{text-align:center; padding:60px 20px; color:var(--muted);}
+.empty-state .icon-badge{margin:0 auto 16px;}
+
+.gps-status{display:flex; align-items:center; gap:8px; font-size:.82rem; padding:10px 14px; border-radius:9px; background:#EFEAE0; margin-bottom:14px;}
+.gps-status.ok{background:rgba(47,109,92,.12); color:var(--emerald-dark);}
+.gps-status.err{background:rgba(179,64,44,.12); color:var(--danger);}
+
+.badge-verified{display:inline-flex; align-items:center; gap:4px; font-size:.7rem; background:rgba(47,109,92,.14); color:var(--emerald-dark); padding:3px 8px; border-radius:99px; font-weight:700;}
+.sos-btn{position:fixed; bottom:24px; right:24px; background:var(--danger); color:#fff; border:none; width:56px;height:56px;border-radius:50%; font-size:1.3rem; box-shadow:0 8px 22px rgba(179,64,44,.4); z-index:100;}
+
+@media (max-width:900px){
+  .hero .wrap{grid-template-columns:1fr; padding-top:50px;}
+  .hero h1{font-size:2.2rem;}
+  .grid-3,.grid-2,.how-steps,.pricing-band .grid-2,.stat-row{grid-template-columns:1fr;}
+  .navlinks{display:none;}
+  .app-shell.active{grid-template-columns:1fr;}
+  .sidebar{display:flex; flex-direction:row; overflow-x:auto; align-items:center;}
+  .side-foot{display:none;}
+  .form-grid{grid-template-columns:1fr;}
+  .main-area{padding:20px 16px 60px;}
+}
+</style>
+</head>
+<body>
+
+<!-- =========================================================
+     MARKETING SITE (public, non connecté)
+     ========================================================= -->
+<div id="site">
+  <header class="topnav">
+    <div class="wrap">
+      <a class="brand" href="#/" onclick="go('/')">
+        <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="#141B33"/><path d="M32 14l6.5 12.9L52 29l-10 9.6L44.5 52 32 45.2 19.5 52 22 38.6 12 29l13.5-2.1z" fill="#E8A33D"/></svg>
+        Artisans<span style="color:var(--ochre)">+</span>
+      </a>
+      <nav class="navlinks">
+        <a onclick="scrollToId('comment')">Comment ça marche</a>
+        <a onclick="scrollToId('metiers')">Métiers</a>
+        <a onclick="scrollToId('tarifs')">Tarifs</a>
+        <a onclick="scrollToId('pays')">Pays couverts</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="btn btn-outline btn-sm" onclick="go('/login')">Connexion</button>
+        <button class="btn btn-primary btn-sm" onclick="go('/register')">Créer un compte</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <div class="eyebrow">7 pays · Afrique de l'Ouest & Rwanda</div>
+        <h1>L'artisan qu'il vous faut, <em>géolocalisé</em>, en quelques minutes.</h1>
+        <p class="lead">Menuisier, électricien, plombier, frigoriste, maçon… Artisans+ trouve l'artisan disponible le plus proche de vous, suit son trajet en temps réel et sécurise le paiement via mobile money ou carte.</p>
+        <div class="hero-ctas">
+          <button class="btn btn-primary" onclick="go('/register?role=client')">Je cherche un artisan</button>
+          <button class="btn btn-dark" onclick="go('/register?role=artisan')">Je suis artisan</button>
+        </div>
+        <div class="hero-stats">
+          <div><b id="statTrades">70+</b><span>métiers référencés</span></div>
+          <div><b>7</b><span>pays actifs</span></div>
+          <div><b>&lt;15min</b><span>délai moyen de mise en relation</span></div>
+        </div>
+      </div>
+      <div class="radar-card">
+        <div class="radar-box">
+          <div class="radar-ring r1"></div><div class="radar-ring r2"></div><div class="radar-ring r3"></div>
+          <div class="radar-sweep"></div>
+          <div class="radar-dot" style="top:20%;left:60%;"></div>
+          <div class="radar-dot" style="top:65%;left:30%;"></div>
+          <div class="radar-dot" style="top:40%;left:75%;"></div>
+          <div class="radar-center"></div>
+        </div>
+        <div class="radar-caption">RECHERCHE EN COURS · 4 ARTISANS PLOMBIER À MOINS DE 3KM</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wax-divider"></div>
+
+  <section id="comment">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Le parcours</div>
+        <h2>Comment ça marche</h2>
+      </div>
+      <div class="how-steps">
+        <div class="how-step"><div class="num">01</div><h4>Décrivez le besoin</h4><p>Choisissez le métier recherché parmi plus de 70 corps de métier de l'artisanat.</p></div>
+        <div class="how-step"><div class="num">02</div><h4>Matching GPS</h4><p>Nous localisons les artisans disponibles les plus proches de votre position.</p></div>
+        <div class="how-step"><div class="num">03</div><h4>Suivi du trajet</h4><p>Suivez l'artisan en direct sur la carte jusqu'à son arrivée devant chez vous.</p></div>
+        <div class="how-step"><div class="num">04</div><h4>Paiement & note</h4><p>Payez via mobile money ou carte depuis votre portefeuille, puis notez la prestation.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="trades-band" id="metiers">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow" style="color:var(--ochre)">Tous les métiers de l'artisanat</div>
+        <h2>Un artisan pour chaque besoin</h2>
+        <p>Plus de 70 métiers référencés, du bâtiment à l'artisanat d'art, en passant par la mécanique et le bien-être.</p>
+      </div>
+      <div class="trade-chips" id="tradeChipsPreview"></div>
+    </div>
+  </section>
+
+  <section id="tarifs" class="pricing-band">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Tarification</div>
+        <h2>Des abonnements simples, pour tous</h2>
+      </div>
+      <div class="grid-2">
+        <div class="price-card client">
+          <span class="pill pill-clay">Compte Client</span>
+          <div class="tier"><span>Essai 3 mois</span><span class="amt mono">1 500 FCFA</span></div>
+          <ul>
+            <li>Accès illimité à la recherche d'artisans géolocalisés</li>
+            <li>Suivi de trajet en temps réel</li>
+            <li>Portefeuille virtuel (mobile money & carte)</li>
+            <li>Support client prioritaire</li>
+          </ul>
+          <div class="tier" style="border-top:1px solid var(--line); padding-top:14px;"><span>Satisfait ? Passez à l'annuel</span><span class="amt mono">7 000 FCFA</span></div>
+        </div>
+        <div class="price-card artisan">
+          <span class="pill pill-ochre">Compte Artisan</span>
+          <div class="tier"><span>Essai 3 mois</span><span class="amt mono">2 000 FCFA</span></div>
+          <ul>
+            <li>Profil professionnel avec vos services & tarifs</li>
+            <li>Réception de demandes de clients à proximité</li>
+            <li>Portefeuille virtuel avec retraits mobile money</li>
+            <li>Badge de fiabilité selon vos notes clients</li>
+          </ul>
+          <div class="tier" style="border-top:1px solid rgba(255,255,255,.2); padding-top:14px;"><span>Satisfait ? Passez à l'annuel</span><span class="amt mono">10 000 FCFA</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pays">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Zone de couverture</div>
+        <h2>Déjà disponible dans 7 pays</h2>
+      </div>
+      <div class="grid-3" id="countryCards"></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div>
+        <div class="brand" style="color:#fff;">Artisans+</div>
+        <p style="max-width:320px; color:#9AA2C0;">La plateforme de mise en relation avec des artisans qualifiés, géolocalisés, en Afrique de l'Ouest et au Rwanda.</p>
+      </div>
+      <div>
+        <b style="color:#fff;">Produit</b><br>
+        <a href="#" onclick="scrollToId('comment')">Comment ça marche</a><br>
+        <a href="#" onclick="scrollToId('tarifs')">Tarifs</a><br>
+      </div>
+      <div>
+        <b style="color:#fff;">Compte</b><br>
+        <a onclick="go('/login')">Connexion</a><br>
+        <a onclick="go('/register')">Créer un compte</a><br>
+      </div>
+    </div>
+    <div class="wrap" style="margin-top:26px; font-size:.78rem; color:#7A81A6;">© 2026 Artisans+ — MVP de démonstration. Aucune transaction réelle n'est effectuée.</div>
+  </footer>
+</div>
+
+<!-- =========================================================
+     AUTH VIEWS
+     ========================================================= -->
+<div id="authView" class="hidden" style="min-height:100vh; background:var(--indigo); display:flex; align-items:center; justify-content:center; padding:30px;">
+  <div style="background:var(--paper); border-radius:18px; max-width:520px; width:100%; padding:36px; box-shadow:var(--shadow);">
+    <a class="brand" style="justify-content:center; display:flex; margin-bottom:18px;" onclick="go('/')">
+      <svg viewBox="0 0 64 64" width="30" height="30"><circle cx="32" cy="32" r="32" fill="#141B33"/><path d="M32 14l6.5 12.9L52 29l-10 9.6L44.5 52 32 45.2 19.5 52 22 38.6 12 29l13.5-2.1z" fill="#E8A33D"/></svg>
+      &nbsp;Artisans+
+    </a>
+    <div id="authBody"></div>
+  </div>
+</div>
+
+<!-- =========================================================
+     APP SHELL (client / artisan / admin)
+     ========================================================= -->
+<div id="appShell" class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main-area" id="mainArea"></main>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* =========================================================================================
+   ARTISANS+ — MVP APPLICATION (frontend seul, aucune clé API réelle)
+   Stockage : localStorage (simulateur de backend). Prêt à brancher une vraie API
+   (FedaPay, CinetPay, etc.) : voir les fonctions marquées "// TODO API" ci-dessous.
+   ========================================================================================= */
+
+/* ---------- CONFIG PAYS ---------- */
+const COUNTRIES = {
+  TG:{name:"Togo", dial:"+228", currency:"FCFA", flag:"🇹🇬", mm:["Mixx by Yas (Moov)","T-Money","Wave"]},
+  BJ:{name:"Bénin", dial:"+229", currency:"FCFA", flag:"🇧🇯", mm:["MTN Mobile Money","Mixx by Yas (Moov)","Wave"]},
+  CI:{name:"Côte d'Ivoire", dial:"+225", currency:"FCFA", flag:"🇨🇮", mm:["Orange Money","MTN Money","Wave","Moov Money"]},
+  SN:{name:"Sénégal", dial:"+221", currency:"FCFA", flag:"🇸🇳", mm:["Orange Money","Wave","Free Money"]},
+  BF:{name:"Burkina Faso", dial:"+226", currency:"FCFA", flag:"🇧🇫", mm:["Orange Money","Mixx by Yas (Moov)","Coris Money"]},
+  ML:{name:"Mali", dial:"+223", currency:"FCFA", flag:"🇲🇱", mm:["Orange Money","Mixx by Yas (Moov)","Wave"]},
+  RW:{name:"Rwanda", dial:"+250", currency:"RWF", flag:"🇷🇼", mm:["MTN Mobile Money","Airtel Money"]}
+};
+const GLOBAL_PAYMENT_METHODS = ["Mixx by Yas (Moov)","Orange Money","MTN Mobile Money","Wave","LemFi","SoliMi","Carte bancaire (Visa/Mastercard)"];
+
+/* ---------- LISTE DES METIERS (tous les métiers possibles de l'artisanat) ---------- */
+const TRADES = [
+  {cat:"Bâtiment & Gros œuvre", list:["Maçon","Charpentier","Coffreur","Ferrailleur (fer à béton)","Terrassier","Puisatier","Carreleur","Plâtrier / Staffeur","Couvreur","Étancheur","Marbrier","Plaquiste (placo)"]},
+  {cat:"Second œuvre & Finitions", list:["Menuisier bois","Menuisier aluminium","Ébéniste","Peintre en bâtiment","Vitrier","Serrurier","Poseur de faux-plafond","Poseur de clôtures","Décorateur d'intérieur","Tapissier"]},
+  {cat:"Électricité, Froid & Énergie", list:["Électricien bâtiment","Électricien industriel","Frigoriste","Climaticien","Installateur panneaux solaires","Technicien groupe électrogène","Électronicien","Installateur vidéosurveillance","Antenniste / Parabole"]},
+  {cat:"Plomberie & Sanitaire", list:["Plombier","Chauffagiste","Installateur sanitaire","Fontainier"]},
+  {cat:"Métallurgie & Soudure", list:["Soudeur","Chaudronnier","Ferronnier","Forgeron","Tôlier / Carrossier"]},
+  {cat:"Mécanique & Transport", list:["Mécanicien auto","Mécanicien moto / tricycle","Peintre automobile","Vulcanisateur","Électricien auto","Chauffeur / Déménageur"]},
+  {cat:"Électroménager & Informatique", list:["Réparateur électroménager","Technicien informatique","Réparateur téléphone","Horloger","Réparateur groupe électrogène"]},
+  {cat:"Textile, Mode & Cuir", list:["Tailleur / Couturier","Brodeur","Tisserand","Teinturier (bogolan/tie-dye)","Cordonnier","Maroquinier"]},
+  {cat:"Artisanat d'art", list:["Sculpteur sur bois","Potier / Céramiste","Bijoutier / Orfèvre","Vannier","Peintre en lettres / enseignes"]},
+  {cat:"Beauté & Bien-être", list:["Coiffeur / Coiffeuse","Tresseuse","Barbier","Esthéticienne","Manucure / Pédicure"]},
+  {cat:"Services domestiques", list:["Jardinier / Paysagiste","Nettoyeur / Pressing","Désinsectiseur / Fumigation","Cuisinier / Traiteur à domicile","Gardien / Agent de sécurité","Apiculteur","Photographe événementiel"]}
+];
+const FLAT_TRADES = TRADES.flatMap(c=>c.list);
+
+/* ---------- STOCKAGE (simulateur de backend) ---------- */
+const DB_KEY = "artisansPlusDB_v1";
+function loadDB(){
+  let raw = localStorage.getItem(DB_KEY);
+  if(!raw){
+    const db = seedDB();
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+    return db;
+  }
+  return JSON.parse(raw);
+}
+function saveDB(db){ localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+function uid(prefix){ return prefix+"_"+Math.random().toString(36).slice(2,9); }
+
+function seedDB(){
+  const now = Date.now();
+  const admin = {
+    id:"admin_1", role:"admin", name:"Administrateur Artisans+",
+    email:"admin@artisansplus.africa", password:"Admin@2026",
+    createdAt:now
+  };
+  // Quelques artisans de démonstration pour tester le matching GPS sans multi-appareils
+  const demoArtisans = [
+    {id:uid("art"), role:"artisan", name:"Kossi Mensah", email:"kossi.menuisier@demo.tg", password:"demo1234",
+     phone:"90112233", countryCode:"TG", trades:["Menuisier bois","Ébéniste"], minPrice:5000,
+     gps:{lat:6.1319,lng:1.2228}, available:true, rating:4.8, ratingsCount:34, verified:true,
+     subscription:{plan:"annuel", status:"active", end: now+300*86400000}, wallet:{balance:42500}, createdAt: now-9000000},
+    {id:uid("art"), role:"artisan", name:"Awa Traoré", email:"awa.electricienne@demo.ci", password:"demo1234",
+     phone:"0701020304", countryCode:"CI", trades:["Électricien bâtiment","Électronicien"], minPrice:6000,
+     gps:{lat:5.3599,lng:-4.0083}, available:true, rating:4.6, ratingsCount:21, verified:true,
+     subscription:{plan:"annuel", status:"active", end: now+200*86400000}, wallet:{balance:18000}, createdAt: now-8000000},
+    {id:uid("art"), role:"artisan", name:"Moussa Diallo", email:"moussa.plombier@demo.sn", password:"demo1234",
+     phone:"771234567", countryCode:"SN", trades:["Plombier","Chauffagiste"], minPrice:4500,
+     gps:{lat:14.7167,lng:-17.4677}, available:true, rating:4.9, ratingsCount:58, verified:true,
+     subscription:{plan:"essai", status:"active", end: now+60*86400000}, wallet:{balance:96000}, createdAt: now-7000000},
+    {id:uid("art"), role:"artisan", name:"Jean-Paul Nzeyimana", email:"jp.frigoriste@demo.rw", password:"demo1234",
+     phone:"788123456", countryCode:"RW", trades:["Frigoriste","Climaticien"], minPrice:7000,
+     gps:{lat:-1.9441,lng:30.0619}, available:true, rating:4.5, ratingsCount:12, verified:false,
+     subscription:{plan:"essai", status:"active", end: now+45*86400000}, wallet:{balance:5000}, createdAt: now-6000000},
+    {id:uid("art"), role:"artisan", name:"Fatou Ouédraogo", email:"fatou.couturiere@demo.bf", password:"demo1234",
+     phone:"70112233", countryCode:"BF", trades:["Tailleur / Couturier","Brodeur"], minPrice:3000,
+     gps:{lat:12.3714,lng:-1.5197}, available:true, rating:4.7, ratingsCount:40, verified:true,
+     subscription:{plan:"annuel", status:"active", end: now+150*86400000}, wallet:{balance:23000}, createdAt: now-5000000},
+    {id:uid("art"), role:"artisan", name:"Ibrahim Coulibaly", email:"ibrahim.macon@demo.ml", password:"demo1234",
+     phone:"76112233", countryCode:"ML", trades:["Maçon","Carreleur"], minPrice:8000,
+     gps:{lat:12.6392,lng:-8.0029}, available:false, rating:4.3, ratingsCount:9, verified:false,
+     subscription:{plan:"essai", status:"active", end: now+80*86400000}, wallet:{balance:1200}, createdAt: now-4000000},
+    {id:uid("art"), role:"artisan", name:"Yao Kouassi", email:"yao.frigoriste@demo.ci", password:"demo1234",
+     phone:"0709998877", countryCode:"CI", trades:["Frigoriste","Climaticien","Électricien bâtiment"], minPrice:6500,
+     gps:{lat:5.345,lng:-4.024}, available:true, rating:4.85, ratingsCount:66, verified:true,
+     subscription:{plan:"annuel", status:"active", end: now+320*86400000}, wallet:{balance:73000}, createdAt: now-3000000}
+  ];
+  const demoClient = {id:uid("cli"), role:"client", name:"Client Démo", email:"client.demo@artisansplus.africa", password:"demo1234",
+    phone:"90000000", countryCode:"CI", gps:{lat:5.3364,lng:-4.0267},
+    subscription:{plan:"essai", status:"active", end: now+70*86400000}, wallet:{balance:15000}, favorites:[], createdAt: now-2000000};
+  return {users:[admin, demoClient, ...demoArtisans], tasks:[], notifications:[], referrals:{}};
+}
+
+let DB = loadDB();
+let SESSION = JSON.parse(localStorage.getItem("artisansPlusSession")||"null");
+
+function persistSession(){ localStorage.setItem("artisansPlusSession", JSON.stringify(SESSION)); }
+function currentUser(){ return SESSION ? DB.users.find(u=>u.id===SESSION.id) : null; }
+
+/* ---------- UTILS ---------- */
+function toast(msg, type){
+  const el = document.createElement("div");
+  el.className = "toast "+(type||"");
+  el.textContent = msg;
+  document.getElementById("toastWrap").appendChild(el);
+  setTimeout(()=>el.remove(), 4200);
+}
+function haversine(a,b){
+  const R=6371, toRad=x=>x*Math.PI/180;
+  const dLat=toRad(b.lat-a.lat), dLng=toRad(b.lng-a.lng);
+  const h=Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat))*Math.cos(toRad(b.lat))*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(h), Math.sqrt(1-h));
+}
+function fmtMoney(n, cur){ return Number(n).toLocaleString('fr-FR')+" "+(cur||"FCFA"); }
+function starsHtml(rating){
+  const full = Math.round(rating);
+  let s=""; for(let i=1;i<=5;i++) s += i<=full ? "★" : "☆";
+  return s;
+}
+function addNotif(userId, title, body){
+  DB.notifications.unshift({id:uid("ntf"), userId, title, body, read:false, createdAt:Date.now()});
+  saveDB(DB);
+}
+function myNotifs(){ return DB.notifications.filter(n=>n.userId===currentUser().id).slice(0,20); }
+function scrollToId(id){ const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth'}); }
+
+/* ---------- ROUTING ---------- */
+function go(path){
+  location.hash = "#"+path;
+}
+window.addEventListener("hashchange", render);
+window.addEventListener("DOMContentLoaded", ()=>{ renderStaticContent(); render(); });
+
+function currentPath(){
+  let h = location.hash.replace(/^#/,"");
+  if(!h) h="/";
+  const [path, qs] = h.split("?");
+  const params = new URLSearchParams(qs||"");
+  return {path, params};
+}
+
+function renderStaticContent(){
+  // Trade chips preview on landing
+  const chipWrap = document.getElementById("tradeChipsPreview");
+  FLAT_TRADES.forEach(t=>{
+    const c = document.createElement("span");
+    c.className="trade-chip"; c.textContent=t;
+    chipWrap.appendChild(c);
+  });
+  // Country cards
+  const ccWrap = document.getElementById("countryCards");
+  Object.values(COUNTRIES).forEach(c=>{
+    const div = document.createElement("div");
+    div.className="card";
+    div.innerHTML = `<div style="font-size:2rem;">${c.flag}</div><h3>${c.name}</h3><p>Indicatif ${c.dial} · Devise ${c.currency}<br>Paiement : ${c.mm.join(", ")}</p>`;
+    ccWrap.appendChild(div);
+  });
+}
+
+/* ---------- MAIN RENDER SWITCH ---------- */
+function render(){
+  const {path, params} = currentPath();
+  const site = document.getElementById("site");
+  const authView = document.getElementById("authView");
+  const appShell = document.getElementById("appShell");
+  site.classList.add("hidden"); authView.classList.add("hidden"); appShell.classList.remove("active");
+
+  if(path==="/"){ site.classList.remove("hidden"); return; }
+
+  if(path==="/login"){ authView.classList.remove("hidden"); renderLogin(); return; }
+  if(path==="/register"){ authView.classList.remove("hidden"); renderRegister(params.get("role")||"client"); return; }
+
+  // Toutes les autres routes nécessitent une session
+  if(!SESSION || !currentUser()){ go("/login"); return; }
+  appShell.classList.add("active");
+  renderAppShell(path, params);
+}
+
+/* =========================================================================================
+   AUTH : LOGIN / REGISTER
+   ========================================================================================= */
+function renderLogin(){
+  document.getElementById("authBody").innerHTML = `
+    <h2 style="text-align:center;">Connexion</h2>
+    <p style="text-align:center; margin-bottom:24px;">Client, artisan ou administrateur — un seul portail.</p>
+    <div class="field"><label>Adresse email</label><input id="li_email" type="email" placeholder="vous@exemple.com"></div>
+    <div class="field"><label>Mot de passe</label><input id="li_pass" type="password" placeholder="••••••••"></div>
+    <button class="btn btn-primary btn-block" onclick="doLogin()">Se connecter</button>
+    <p style="text-align:center; margin-top:16px; font-size:.85rem;">Pas encore de compte ? <a href="#" onclick="go('/register')" style="color:var(--clay); font-weight:700;">Créer un compte</a></p>
+    <div style="margin-top:22px; padding:14px; background:#F1EADA; border-radius:10px; font-size:.78rem; color:var(--muted);">
+      <b>Comptes de démonstration :</b><br>
+      Admin — admin@artisansplus.africa / Admin@2026<br>
+      Client — client.demo@artisansplus.africa / demo1234<br>
+      Artisan — kossi.menuisier@demo.tg / demo1234
+    </div>
+  `;
+}
+function doLogin(){
+  const email = document.getElementById("li_email").value.trim().toLowerCase();
+  const pass = document.getElementById("li_pass").value;
+  const user = DB.users.find(u=>u.email.toLowerCase()===email && u.password===pass);
+  if(!user){ toast("Email ou mot de passe incorrect.", "err"); return; }
+  if(user.blocked){ toast("Ce compte a été suspendu par l'administrateur.", "err"); return; }
+  SESSION = {id:user.id}; persistSession();
+  toast("Bienvenue "+user.name.split(" ")[0]+" 👋", "ok");
+  go(user.role==="admin" ? "/admin" : user.role==="artisan" ? "/artisan" : "/client");
+}
+function logout(){ SESSION=null; persistSession(); go("/"); }
+
+function renderRegister(defaultRole){
+  const countryOpts = Object.entries(COUNTRIES).map(([k,c])=>`<option value="${k}">${c.flag} ${c.name} (${c.dial})</option>`).join("");
+  document.getElementById("authBody").innerHTML = `
+    <h2 style="text-align:center;">Créer un compte</h2>
+    <div class="tabs" style="justify-content:center;">
+      <button class="tab-btn ${defaultRole==='client'?'active':''}" id="tabClient" onclick="switchRegisterTab('client')">Je suis Client</button>
+      <button class="tab-btn ${defaultRole==='artisan'?'active':''}" id="tabArtisan" onclick="switchRegisterTab('artisan')">Je suis Artisan</button>
+    </div>
+    <div id="registerFormWrap"></div>
+    <p style="text-align:center; margin-top:14px; font-size:.85rem;">Déjà un compte ? <a onclick="go('/login')" style="color:var(--clay); font-weight:700; cursor:pointer;">Se connecter</a></p>
+  `;
+  window.__regCountryOpts = countryOpts;
+  switchRegisterTab(defaultRole==='artisan'?'artisan':'client');
+}
+function switchRegisterTab(role){
+  document.getElementById("tabClient").classList.toggle("active", role==='client');
+  document.getElementById("tabArtisan").classList.toggle("active", role==='artisan');
+  const wrap = document.getElementById("registerFormWrap");
+  if(role==='client'){
+    wrap.innerHTML = `
+      <div class="field"><label>Nom complet</label><input id="rc_name" placeholder="Ex: Aïcha Koné"></div>
+      <div class="field"><label>Email</label><input id="rc_email" type="email"></div>
+      <div class="field"><label>Téléphone</label>
+        <div class="phone-row">
+          <select id="rc_country">${window.__regCountryOpts}</select>
+          <input id="rc_phone" placeholder="Numéro sans indicatif">
+        </div>
+      </div>
+      <div class="field"><label>Mot de passe</label><input id="rc_pass" type="password"></div>
+      <button class="btn btn-primary btn-block" onclick="submitClientRegister()">Continuer vers l'abonnement</button>
+    `;
+  } else {
+    wrap.innerHTML = `
+      <div class="field"><label>Nom complet</label><input id="ra_name" placeholder="Ex: Kossi Mensah"></div>
+      <div class="field"><label>Email</label><input id="ra_email" type="email"></div>
+      <div class="field"><label>Téléphone</label>
+        <div class="phone-row">
+          <select id="ra_country">${window.__regCountryOpts}</select>
+          <input id="ra_phone" placeholder="Numéro sans indicatif">
+        </div>
+      </div>
+      <div class="field"><label>Mot de passe</label><input id="ra_pass" type="password"></div>
+      <p style="font-size:.78rem; color:var(--muted); margin-top:-6px;">Après cette étape, vous positionnerez votre atelier/bureau sur GPS et compléterez vos services.</p>
+      <button class="btn btn-dark btn-block" onclick="submitArtisanRegister()">Continuer l'inscription</button>
+    `;
+  }
+}
+function submitClientRegister(){
+  const name=document.getElementById("rc_name").value.trim();
+  const email=document.getElementById("rc_email").value.trim().toLowerCase();
+  const country=document.getElementById("rc_country").value;
+  const phone=document.getElementById("rc_phone").value.trim();
+  const pass=document.getElementById("rc_pass").value;
+  if(!name||!email||!phone||!pass){ toast("Merci de remplir tous les champs.","err"); return; }
+  if(DB.users.some(u=>u.email.toLowerCase()===email)){ toast("Cet email est déjà utilisé.","err"); return; }
+  const user = {id:uid("cli"), role:"client", name, email, password:pass, phone, countryCode:country,
+    gps:null, subscription:{plan:null,status:"pending",end:null}, wallet:{balance:0}, favorites:[], createdAt:Date.now()};
+  DB.users.push(user); saveDB(DB);
+  SESSION={id:user.id}; persistSession();
+  openSubscriptionModal("client");
+}
+function submitArtisanRegister(){
+ 
+async function submitClientRegister(){
+  const name = document.getElementById("rc_name").value.trim();
+  const email = document.getElementById("rc_email").value.trim().toLowerCase();
+  const country = document.getElementById("rc_country").value;
+  const phone = document.getElementById("rc_phone").value.trim();
+  const pass = document.getElementById("rc_pass").value;
+
+  if(!name || !email || !phone || !pass){
+    toast("Merci de remplir tous les champs.", "err");
+    return;
+  }
+
+  if(pass.length < 6){
+    toast("Le mot de passe doit contenir au moins 6 caractères.", "err");
+    return;
+  }
+
+  if(!window.supabase){
+    toast("Le service Supabase n'est pas disponible.", "err");
+    return;
+  }
+
+  try {
+    const { data, error } = await window.supabase.auth.signUp({
+      email: email,
+      password: pass,
+      options: {
+        data: {
+          role: "client",
+          full_name: name,
+          phone: country + phone
+        }
+      }
+    });
+
+    if(error){
+      toast(error.message, "err");
+      return;
+    }
+
+    if(data.user && !data.session){
+      document.getElementById("authBody").innerHTML = `
+        <div style="text-align:center; padding:25px 10px;">
+          <h2>Vérifiez votre adresse e-mail</h2>
+          <p>Votre compte a été créé avec succès.</p>
+          <p>Nous vous avons envoyé un e-mail de confirmation.</p>
+          <p>Ouvrez cet e-mail et cliquez sur le lien pour activer votre compte.</p>
+          <button class="btn btn-primary btn-block"
+            onclick="go('/login')">
+            Aller à la connexion
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    toast("Compte créé avec succès !", "ok");
+    SESSION = {id: data.user.id};
+    persistSession();
+    openSubscriptionModal("client");
+
+  } catch(error) {
+    toast("Une erreur est survenue lors de l'inscription.", "err");
+    console.error(error);
+  }
+}
+
+}
+
+/* =========================================================================================
+   MODALES
+   ========================================================================================= */
+function openModal(html){
+  const wrap=document.createElement("div");
+  wrap.className="modal-overlay"; wrap.id="activeModal";
+  wrap.innerHTML = `<div class="modal">${html}</div>`;
+  wrap.addEventListener("click", e=>{ if(e.target===wrap) closeModal(); });
+  document.body.appendChild(wrap);
+}
+function closeModal(){ const m=document.getElementById("activeModal"); if(m) m.remove(); }
+
+function openSubscriptionModal(role){
+  const price3 = role==="client" ? 1500 : 2000;
+  const priceY = role==="client" ? 7000 : 10000;
+  openModal(`
+    <button class="modal-close" onclick="closeModal(); if(!currentUser().subscription.status || currentUser().subscription.status==='pending'){ toast('Un abonnement actif est requis pour utiliser Artisans+.','err'); }">✕</button>
+    <h3>Choisissez votre abonnement</h3>
+    <p>Compte ${role==='client'?'Client':'Artisan'} — activez votre accès à la plateforme.</p>
+    <div class="field">
+      <label style="display:flex; gap:10px; align-items:center; border:2px solid var(--line); border-radius:10px; padding:12px; cursor:pointer;" onclick="selectPlanRadio(this)">
+        <input type="radio" name="plan" value="essai" checked style="width:auto;"> <div><b>Essai 3 mois</b> — ${price3.toLocaleString('fr-FR')} FCFA</div>
+      </label>
+      <label style="display:flex; gap:10px; align-items:center; border:2px solid var(--line); border-radius:10px; padding:12px; margin-top:8px; cursor:pointer;" onclick="selectPlanRadio(this)">
+        <input type="radio" name="plan" value="annuel" style="width:auto;"> <div><b>Abonnement annuel</b> — ${priceY.toLocaleString('fr-FR')} FCFA</div>
+      </label>
+    </div>
+    <div class="field"><label>Méthode de paiement</label>
+      <div class="wallet-methods" id="subPmGrid">
+        ${GLOBAL_PAYMENT_METHODS.map(m=>`<div class="pm-btn" onclick="selectPM(this,'${m}')">${m}</div>`).join("")}
+      </div>
+    </div>
+    <div class="field"><label>Numéro mobile money</label><input id="sub_phone" placeholder="Numéro pour le paiement"></div>
+    <button class="btn btn-primary btn-block" onclick="paySubscription('${role}', ${price3}, ${priceY})">Payer et activer mon compte</button>
+    <p style="font-size:.72rem; color:var(--muted); margin-top:10px;">Paiement simulé pour cette démo MVP — aucune transaction réelle n'est effectuée. En production, ce module se connecte à FedaPay / CinetPay avec vos clés API.</p>
+  `);
+}
+let __selectedPM = null;
+function selectPM(el, name){ document.querySelectorAll("#subPmGrid .pm-btn, #walletPmGrid .pm-btn, #payPmGrid .pm-btn").forEach(b=>b.classList.remove("selected")); el.classList.add("selected"); __selectedPM=name; }
+function selectPlanRadio(){}
+function paySubscription(role, price3, priceY){
+  const plan = document.querySelector('input[name="plan"]:checked').value;
+  const phone = document.getElementById("sub_phone").value.trim();
+  if(!__selectedPM){ toast("Choisissez une méthode de paiement.","err"); return; }
+  if(!phone){ toast("Entrez le numéro utilisé pour le paiement.","err"); return; }
+  const amount = plan==="essai" ? price3 : priceY;
+  toast("Traitement du paiement via "+__selectedPM+"...", "");
+  closeModal();
+  setTimeout(()=>{
+    const u = currentUser();
+    const days = plan==="essai" ? 90 : 365;
+    u.subscription = {plan, status:"active", end: Date.now()+days*86400000, method:__selectedPM};
+    saveDB(DB); __selectedPM=null;
+    toast("Paiement confirmé ! Abonnement "+(plan==='essai'?'essai 3 mois':'annuel')+" activé.", "ok");
+    render();
+  }, 1400);
+}
+
+function openTopupModal(){
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>Recharger mon portefeuille</h3>
+    <div class="field"><label>Montant (FCFA)</label><input id="topup_amt" type="number" placeholder="Ex: 5000"></div>
+    <div class="field"><label>Méthode de paiement</label>
+      <div class="wallet-methods" id="walletPmGrid">${GLOBAL_PAYMENT_METHODS.map(m=>`<div class="pm-btn" onclick="selectPM(this,'${m}')">${m}</div>`).join("")}</div>
+    </div>
+    <div class="field"><label>Numéro mobile money</label><input id="topup_phone" placeholder="Numéro"></div>
+    <button class="btn btn-primary btn-block" onclick="confirmTopup()">Recharger</button>
+  `);
+}
+function confirmTopup(){
+  const amt = parseFloat(document.getElementById("topup_amt").value);
+  const phone = document.getElementById("topup_phone").value.trim();
+  if(!amt || amt<=0){ toast("Entrez un montant valide.","err"); return; }
+  if(!__selectedPM || !phone){ toast("Complétez la méthode de paiement.","err"); return; }
+  closeModal();
+  toast("Confirmation du paiement via "+__selectedPM+"...","");
+  setTimeout(()=>{
+    const u=currentUser(); u.wallet.balance += amt; saveDB(DB); __selectedPM=null;
+    toast("Portefeuille rechargé de "+fmtMoney(amt)+".","ok");
+    render();
+  },1200);
+}
+
+/* =========================================================================================
+   APP SHELL — SIDEBAR + ROUTES PAR ROLE
+   ========================================================================================= */
+function renderAppShell(path, params){
+  const u = currentUser();
+  buildSidebar(u, path);
+  const main = document.getElementById("mainArea");
+
+  if(u.role==="client"){
+    if(u.subscription.status!=="active" && !path.startsWith("/client/onboarding")){
+      openSubscriptionModal("client");
+    }
+    if(path==="/client") return renderClientHome(main, u);
+    if(path==="/client/search") return renderClientSearch(main, u);
+    if(path.startsWith("/client/task/")) return renderClientTask(main, u, path.split("/").pop());
+    if(path==="/client/wallet") return renderWalletView(main, u);
+    if(path==="/client/history") return renderClientHistory(main, u);
+    if(path==="/client/profile") return renderProfileView(main, u);
+    return renderClientHome(main,u);
+  }
+  if(u.role==="artisan"){
+    if(params.get("onboarding") || !u.trades || u.trades.length===0 || !u.gps){
+      return renderArtisanOnboarding(main, u);
+    }
+    if(u.subscription.status!=="active"){ openSubscriptionModal("artisan"); }
+    if(path==="/artisan") return renderArtisanHome(main, u);
+    if(path==="/artisan/requests") return renderArtisanRequests(main, u);
+    if(path.startsWith("/artisan/task/")) return renderArtisanTask(main, u, path.split("/").pop());
+    if(path==="/artisan/wallet") return renderWalletView(main, u);
+    if(path==="/artisan/profile") return renderArtisanProfile(main, u);
+    if(path==="/artisan/history") return renderArtisanHistory(main, u);
+    return renderArtisanHome(main,u);
+  }
+  if(u.role==="admin"){
+    if(path==="/admin") return renderAdminHome(main);
+    if(path==="/admin/users") return renderAdminUsers(main);
+    if(path==="/admin/tasks") return renderAdminTasks(main);
+    return renderAdminHome(main);
+  }
+}
+
+function buildSidebar(u, path){
+  const bell = `
+    <div class="bell-wrap" style="margin-left:auto;">
+      <button class="side-link" style="width:auto;" onclick="toggleNotifDropdown()">🔔 Notifications ${myNotifs().filter(n=>!n.read).length?('<span class=\"bell-dot\"></span>'):''}</button>
+      <div class="dropdown hidden" id="notifDropdown"></div>
+    </div>`;
+  let links = "";
+  if(u.role==="client"){
+    links = [
+      ["/client","🏠","Accueil"],["/client/search","🔎","Trouver un artisan"],
+      ["/client/history","🧾","Mes tâches"],["/client/wallet","👛","Portefeuille"],["/client/profile","⚙️","Mon profil"]
+    ];
+  } else if(u.role==="artisan"){
+    links = [
+      ["/artisan","🏠","Accueil"],["/artisan/requests","📥","Demandes reçues"],
+      ["/artisan/history","🧾","Historique"],["/artisan/wallet","👛","Portefeuille"],["/artisan/profile","🛠️","Mon profil"]
+    ];
+  } else {
+    links = [["/admin","📊","Vue d'ensemble"],["/admin/users","👥","Utilisateurs"],["/admin/tasks","🗂️","Tâches"]];
+  }
+  document.getElementById("sidebar").innerHTML = `
+    <a class="brand" onclick="go('/')"><svg viewBox="0 0 64 64" width="26" height="26"><circle cx="32" cy="32" r="32" fill="#E8A33D"/><path d="M32 14l6.5 12.9L52 29l-10 9.6L44.5 52 32 45.2 19.5 52 22 38.6 12 29l13.5-2.1z" fill="#141B33"/></svg> Artisans+</a>
+    ${links.map(([p,i,l])=>`<button class="side-link ${path===p?'active':''}" onclick="go('${p}')">${i} ${l}</button>`).join("")}
+    <div style="flex:1"></div>
+    <button class="side-link" onclick="toggleNotifDropdown()">🔔 Notifications</button>
+    <button class="side-link" onclick="logout()">🚪 Déconnexion</button>
+    <div class="side-foot">Connecté : ${u.name}<br>${u.role.toUpperCase()}</div>
+  `;
+}
+function toggleNotifDropdown(){
+  let dd = document.getElementById("notifDropdown");
+  if(!dd){
+    // sidebar variant doesn't have dropdown container; create simple modal instead
+    const notifs = myNotifs();
+    openModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Notifications</h3>` +
+      (notifs.length? notifs.map(n=>`<div class="dropdown item"><b>${n.title}</b>${n.body}<div style="font-size:.7rem;color:var(--muted);margin-top:4px;">${new Date(n.createdAt).toLocaleString('fr-FR')}</div></div>`).join("") : `<p>Aucune notification pour le moment.</p>`)
+    );
+    DB.notifications.forEach(n=>{ if(n.userId===currentUser().id) n.read=true; }); saveDB(DB);
+  }
+}
+
+/* ---------------- CLIENT VIEWS ---------------- */
+function renderClientHome(main, u){
+  const myTasks = DB.tasks.filter(t=>t.clientId===u.id);
+  const active = myTasks.filter(t=>!["closed","cancelled"].includes(t.status));
+  main.innerHTML = `
+    <div class="main-head"><div><h1>Bonjour, ${u.name.split(' ')[0]} 👋</h1><p>Trouvez un artisan disponible près de vous en quelques clics.</p></div>
+      <button class="btn btn-primary" onclick="go('/client/search')">+ Nouvelle demande</button>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><b>${myTasks.length}</b><span>Tâches totales</span></div>
+      <div class="stat-box"><b>${active.length}</b><span>En cours</span></div>
+      <div class="stat-box"><b>${fmtMoney(u.wallet.balance)}</b><span>Solde portefeuille</span></div>
+      <div class="stat-box"><b>${u.subscription.status==='active' ? new Date(u.subscription.end).toLocaleDateString('fr-FR') : '—'}</b><span>Abonnement valide jusqu'au</span></div>
+    </div>
+    <h3>Tâches en cours</h3>
+    ${active.length? active.map(t=>taskRowClient(t)).join("") : `<div class="empty-state"><div class="icon-badge">📭</div>Aucune tâche en cours. <br><button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="go('/client/search')">Chercher un artisan</button></div>`}
+  `;
+}
+function taskRowClient(t){
+  const artisan = DB.users.find(a=>a.id===t.artisanId);
+  return `<div class="artisan-result">
+    <div class="avatar">${artisan.name.split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
+    <div class="info"><h4>${artisan.name} — ${t.trade}</h4><span class="pill pill-ochre">${statusLabel(t.status)}</span></div>
+    <button class="btn btn-dark btn-sm" onclick="go('/client/task/${t.id}')">Suivre</button>
+  </div>`;
+}
+function statusLabel(s){
+  return {pending:"En attente d'acceptation", accepted:"Accepté · en route", enroute:"En route", arrived:"Artisan arrivé", in_progress:"Prestation en cours", paid:"Payé — à clôturer", closed:"Clôturé", cancelled:"Annulé"}[s]||s;
+}
+
+function renderClientSearch(main, u){
+  main.innerHTML = `
+    <div class="main-head"><h1>Trouver un artisan</h1></div>
+    <div class="card" style="margin-bottom:22px;">
+      <div class="field"><label>Quel métier recherchez-vous ?</label>
+        <input list="tradeList" id="searchTrade" placeholder="Ex : Plombier, Frigoriste, Électricien…">
+        <datalist id="tradeList">${FLAT_TRADES.map(t=>`<option value="${t}">`).join("")}</datalist>
+      </div>
+      <div id="gpsStatusSearch" class="gps-status">📍 Position non détectée</div>
+      <button class="btn btn-primary" onclick="locateAndSearch()">Localiser un artisan disponible</button>
+    </div>
+    <div id="searchResults"></div>
+  `;
+}
+function locateAndSearch(){
+  const trade = document.getElementById("searchTrade").value.trim();
+  if(!trade){ toast("Précisez le métier recherché.","err"); return; }
+  const statusEl = document.getElementById("gpsStatusSearch");
+  statusEl.textContent = "📡 Localisation en cours…"; statusEl.className="gps-status";
+  if(!navigator.geolocation){ statusEl.textContent="GPS non supporté par ce navigateur."; statusEl.className="gps-status err"; return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const clientPos = {lat:pos.coords.latitude, lng:pos.coords.longitude};
+    const u = currentUser(); u.gps = clientPos; saveDB(DB);
+    statusEl.textContent = "✅ Position détectée"; statusEl.className="gps-status ok";
+    showSearchResults(trade, clientPos);
+  }, err=>{
+    statusEl.textContent = "⚠️ Impossible d'obtenir la position ("+err.message+"). Utilisation d'une position de démonstration (Abidjan).";
+    statusEl.className="gps-status err";
+    const fallback = {lat:5.3364,lng:-4.0267};
+    const u = currentUser(); u.gps = fallback; saveDB(DB);
+    showSearchResults(trade, fallback);
+  }, {enableHighAccuracy:true, timeout:8000});
+}
+function showSearchResults(trade, clientPos){
+  const matches = DB.users.filter(a=>a.role==="artisan" && a.available && a.gps &&
+      a.trades && a.trades.some(t=>t.toLowerCase().includes(trade.toLowerCase())))
+    .map(a=>({...a, dist: haversine(clientPos, a.gps)}))
+    .sort((a,b)=>a.dist-b.dist);
+  const wrap = document.getElementById("searchResults");
+  if(!matches.length){
+    wrap.innerHTML = `<div class="empty-state"><div class="icon-badge">🔍</div>Aucun artisan disponible pour « ${trade} » pour le moment. Réessayez plus tard.</div>`;
+    return;
+  }
+  wrap.innerHTML = `<h3>${matches.length} artisan(s) trouvé(s)</h3>` + matches.map(a=>`
+    <div class="artisan-result">
+      <div class="avatar">${a.name.split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
+      <div class="info">
+        <h4>${a.name} ${a.verified?'<span class="badge-verified">✔ Vérifié</span>':''}</h4>
+        <span class="stars">${starsHtml(a.rating)}</span> <span style="font-size:.78rem;color:var(--muted);">(${a.ratingsCount} avis)</span><br>
+        <span style="font-size:.82rem;">${a.trades.join(", ")}</span> · <span class="mono" style="font-size:.8rem;">à partir de ${fmtMoney(a.minPrice)}</span>
+      </div>
+      <div style="text-align:right;">
+        <div class="dist-badge">${a.dist.toFixed(1)} km</div>
+        <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="requestArtisan('${a.id}','${trade}')">Demander</button>
+      </div>
+    </div>
+  `).join("");
+}
+function requestArtisan(artisanId, trade){
+  const u = currentUser();
+  const artisan = DB.users.find(a=>a.id===artisanId);
+  const task = {id:uid("task"), clientId:u.id, artisanId, trade, status:"pending",
+    clientGPS:u.gps, artisanGPS:artisan.gps, price:artisan.minPrice, createdAt:Date.now(), route:0};
+  DB.tasks.push(task); saveDB(DB);
+  addNotif(artisanId, "Nouvelle demande de mission", `${u.name} recherche un(e) ${trade} près de sa position.`);
+  toast("Demande envoyée à "+artisan.name+" ! En attente de sa réponse.", "ok");
+  go("/client/task/"+task.id);
+}
+
+function renderClientTask(main, u, taskId){
+  const t = DB.tasks.find(x=>x.id===taskId);
+  if(!t){ main.innerHTML="<p>Tâche introuvable.</p>"; return; }
+  const artisan = DB.users.find(a=>a.id===t.artisanId);
+  main.innerHTML = `
+    <div class="main-head"><h1>Suivi de mission — ${t.trade}</h1><span class="pill pill-ochre">${statusLabel(t.status)}</span></div>
+    <div class="card">
+      <div class="artisan-result" style="border:none; padding:0; margin-bottom:10px;">
+        <div class="avatar">${artisan.name.split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
+        <div class="info"><h4>${artisan.name} ${artisan.verified?'<span class="badge-verified">✔ Vérifié</span>':''}</h4><span class="stars">${starsHtml(artisan.rating)}</span></div>
+        <a class="btn btn-outline btn-sm" href="tel:${COUNTRIES[artisan.countryCode].dial}${artisan.phone}">📞 Appeler</a>
+      </div>
+      ${statusTimelineHtml(t.status)}
+      <div id="taskMap" class="task-track-map"></div>
+      <div id="taskActionZone"></div>
+    </div>
+  `;
+  initTaskMap(t);
+  renderTaskActionZone(t, u, "client");
+}
+function statusTimelineHtml(status){
+  const steps=[["pending","Demande envoyée"],["accepted","Acceptée"],["enroute","En route"],["arrived","Arrivé"],["in_progress","Prestation"],["paid","Payé"],["closed","Clôturé"]];
+  const order = steps.map(s=>s[0]);
+  const curIdx = order.indexOf(status);
+  return `<div class="status-timeline">${steps.map(([key,label],i)=>`<div class="st ${i<curIdx?'done':''} ${i===curIdx?'now':''}"><div class="dot"></div>${label}</div>`).join("")}</div>`;
+}
+let __taskMapInstance=null, __taskMarkerArtisan=null, __routeTimer=null;
+function initTaskMap(t){
+  if(__taskMapInstance){ __taskMapInstance.remove(); __taskMapInstance=null; }
+  const clientPos = t.clientGPS || {lat:6.13,lng:1.22};
+  const map = L.map('taskMap').setView([clientPos.lat, clientPos.lng], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap'}).addTo(map);
+  const clientIcon = L.divIcon({className:'', html:'<div style="background:#2F6D5C;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 3px rgba(47,109,92,.35)"></div>'});
+  const artIcon = L.divIcon({className:'', html:'<div style="background:#E8A33D;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 3px rgba(232,163,61,.35)"></div>'});
+  L.marker([clientPos.lat, clientPos.lng], {icon:clientIcon}).addTo(map).bindPopup("Vous");
+  const artPos = t.artisanGPS || clientPos;
+  __taskMarkerArtisan = L.marker([artPos.lat, artPos.lng], {icon:artIcon}).addTo(map).bindPopup("Artisan");
+  const bounds = L.latLngBounds([[clientPos.lat,clientPos.lng],[artPos.lat,artPos.lng]]);
+  map.fitBounds(bounds, {padding:[40,40]});
+  __taskMapInstance = map;
+  if(t.status==="enroute" || t.status==="accepted"){ startRouteSimulation(t); }
+}
+function startRouteSimulation(t){
+  if(__routeTimer) clearInterval(__routeTimer);
+  const clientPos = t.clientGPS, artPos = t.artisanGPS;
+  __routeTimer = setInterval(()=>{
+    const cur = DB.tasks.find(x=>x.id===t.id);
+    if(!cur || !["accepted","enroute"].includes(cur.status)){ clearInterval(__routeTimer); return; }
+    cur.route = Math.min(100, (cur.route||0) + 8);
+    const lat = artPos.lat + (clientPos.lat-artPos.lat)*(cur.route/100);
+    const lng = artPos.lng + (clientPos.lng-artPos.lng)*(cur.route/100);
+    if(__taskMarkerArtisan) __taskMarkerArtisan.setLatLng([lat,lng]);
+    cur.status = "enroute";
+    const bar = document.getElementById("routeProgressBar");
+    if(bar) bar.style.width = cur.route+"%";
+    const eta = document.getElementById("routeEta");
+    if(eta) eta.textContent = Math.max(0, Math.round((100-cur.route)/8*3)) + " min restantes (estimation)";
+    saveDB(DB);
+    if(cur.route>=100){ clearInterval(__routeTimer); }
+  }, 1200);
+}
+function renderTaskActionZone(t, u, viewer){
+  const zone = document.getElementById("taskActionZone");
+  if(!zone) return;
+  let html = "";
+  if(viewer==="client"){
+    if(t.status==="pending") html = `<p style="margin-top:16px;">En attente de la réponse de l'artisan…</p>`;
+    if(["accepted","enroute"].includes(t.status)){
+      html = `<div style="margin-top:16px;"><div class="progress-bar"><div id="routeProgressBar" style="width:${t.route||0}%"></div></div><p id="routeEta" class="mono" style="font-size:.82rem;">Trajet en cours…</p></div>`;
+    }
+    if(t.status==="arrived") html = `<div class="card" style="background:rgba(232,163,61,.12); margin-top:16px;"><b>🔔 L'artisan est arrivé !</b><p>Merci de sortir à la devanture pour l'accueillir.</p><button class="btn btn-primary" onclick="startPrestation('${t.id}')">Confirmer le début de la prestation</button></div>`;
+    if(t.status==="in_progress") html = `<div class="card" style="margin-top:16px;"><b>Prestation en cours…</b><p>Une fois le travail terminé, procédez au paiement depuis votre portefeuille.</p><button class="btn btn-emerald" onclick="openPayTaskModal('${t.id}')">💳 Payer l'artisan (${fmtMoney(t.price)})</button></div>`;
+    if(t.status==="paid") html = `<div class="card" style="margin-top:16px;"><b>✅ Paiement effectué</b><p>Merci de clôturer la tâche et de noter la prestation.</p><button class="btn btn-dark" onclick="openRatingModal('${t.id}')">Clôturer & noter</button></div>`;
+    if(t.status==="closed") html = `<div class="card" style="margin-top:16px;"><b>Tâche clôturée ✔</b><p>Merci d'avoir utilisé Artisans+.</p></div>`;
+  } else {
+    if(t.status==="pending") html = `<div style="margin-top:16px; display:flex; gap:10px;"><button class="btn btn-emerald" onclick="acceptTask('${t.id}')">Accepter la mission</button><button class="btn btn-outline" onclick="declineTask('${t.id}')">Refuser</button></div>`;
+    if(["accepted","enroute"].includes(t.status)){
+      html = `<div style="margin-top:16px;"><div class="progress-bar"><div id="routeProgressBar" style="width:${t.route||0}%"></div></div><button class="btn btn-primary" style="margin-top:10px;" onclick="markArrived('${t.id}')">📍 Notifier mon arrivée</button></div>`;
+    }
+    if(t.status==="arrived") html = `<p style="margin-top:16px;">En attente de la confirmation du client pour démarrer la prestation…</p>`;
+    if(t.status==="in_progress") html = `<p style="margin-top:16px;">Prestation en cours. En attente du paiement du client.</p>`;
+    if(t.status==="paid") html = `<div class="card" style="margin-top:16px;"><b>💰 Paiement reçu</b><p>En attente de la clôture et de la note du client.</p></div>`;
+    if(t.status==="closed") html = `<div class="card" style="margin-top:16px;"><b>Mission clôturée ✔</b>${t.rating?`<p>Note reçue : ${starsHtml(t.rating)}</p>`:""}</div>`;
+  }
+  zone.innerHTML = html;
+}
+function startPrestation(taskId){
+  const t = DB.tasks.find(x=>x.id===taskId); t.status="in_progress"; saveDB(DB);
+  addNotif(t.artisanId, "Prestation démarrée", "Le client a confirmé le début de la prestation.");
+  render();
+}
+function openPayTaskModal(taskId){
+  const t = DB.tasks.find(x=>x.id===taskId);
+  const u = currentUser();
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>Paiement de la prestation</h3>
+    <div class="wallet-box" style="margin-top:10px;">
+      <span style="font-size:.78rem;opacity:.8;">Solde disponible</span><div class="bal">${fmtMoney(u.wallet.balance)}</div>
+    </div>
+    <p>Montant à payer : <b class="mono">${fmtMoney(t.price)}</b> (commission plateforme incluse pour l'artisan)</p>
+    ${u.wallet.balance < t.price ? `<p style="color:var(--danger);">Solde insuffisant. Rechargez votre portefeuille avant de payer.</p><button class="btn btn-outline btn-block" onclick="closeModal(); openTopupModal();">Recharger mon portefeuille</button>` :
+    `<button class="btn btn-emerald btn-block" onclick="payTask('${taskId}')">Confirmer le paiement</button>`}
+  `);
+}
+function payTask(taskId){
+  const t = DB.tasks.find(x=>x.id===taskId);
+  const client = currentUser();
+  const artisan = DB.users.find(a=>a.id===t.artisanId);
+  const commission = Math.round(t.price*0.10);
+  client.wallet.balance -= t.price;
+  artisan.wallet.balance += (t.price - commission);
+  t.status="paid"; t.commission=commission;
+  saveDB(DB); closeModal();
+  addNotif(artisan.id, "Paiement reçu", `Vous avez reçu ${fmtMoney(t.price-commission)} pour la mission « ${t.trade} » (commission plateforme : ${fmtMoney(commission)}).`);
+  toast("Paiement effectué avec succès !","ok");
+  render();
+}
+function openRatingModal(taskId){
+  window.__ratingValue = 5;
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3>Notez la prestation</h3>
+    <div class="rating-stars" id="ratingStars">${[1,2,3,4,5].map(i=>`<span class="active" data-v="${i}" onclick="setRating(${i})">★</span>`).join("")}</div>
+    <div class="field" style="margin-top:16px;"><label>Commentaire (optionnel)</label><textarea id="ratingComment" rows="3" placeholder="Votre expérience avec l'artisan…"></textarea></div>
+    <button class="btn btn-dark btn-block" onclick="submitRating('${taskId}')">Clôturer la tâche</button>
+  `);
+}
+function setRating(v){
+  window.__ratingValue=v;
+  document.querySelectorAll("#ratingStars span").forEach(s=>{ s.classList.toggle("active", parseInt(s.dataset.v)<=v); });
+}
+function submitRating(taskId){
+  const t = DB.tasks.find(x=>x.id===taskId);
+  const artisan = DB.users.find(a=>a.id===t.artisanId);
+  const val = window.__ratingValue||5;
+  t.status="closed"; t.rating=val; t.comment=document.getElementById("ratingComment").value;
+  artisan.rating = ((artisan.rating*artisan.ratingsCount)+val)/(artisan.ratingsCount+1);
+  artisan.ratingsCount += 1;
+  saveDB(DB); closeModal();
+  addNotif(artisan.id, "Nouvelle note reçue", `Vous avez reçu ${val} étoile(s) pour la mission « ${t.trade} ».`);
+  toast("Merci pour votre retour !","ok");
+  render();
+}
+
+function renderClientHistory(main, u){
+  const tasks = DB.tasks.filter(t=>t.clientId===u.id).sort((a,b)=>b.createdAt-a.createdAt);
+  main.innerHTML = `<div class="main-head"><h1>Historique de mes tâches</h1></div>
+    <table class="table"><thead><tr><th>Métier</th><th>Artisan</th><th>Statut</th><th>Prix</th><th>Date</th><th></th></tr></thead>
+    <tbody>${tasks.map(t=>{
+      const a = DB.users.find(x=>x.id===t.artisanId);
+      return `<tr><td>${t.trade}</td><td>${a.name}</td><td><span class="pill pill-muted">${statusLabel(t.status)}</span></td><td class="mono">${fmtMoney(t.price)}</td><td>${new Date(t.createdAt).toLocaleDateString('fr-FR')}</td><td><button class="btn btn-outline btn-sm" onclick="go('/client/task/${t.id}')">Voir</button></td></tr>`;
+    }).join("") || `<tr><td colspan="6" style="text-align:center;color:var(--muted);">Aucune tâche pour le moment.</td></tr>`}</tbody></table>`;
+}
+
+function renderProfileView(main, u){
+  main.innerHTML = `<div class="main-head"><h1>Mon profil</h1></div>
+    <div class="card">
+      <p><b>Nom :</b> ${u.name}<br><b>Email :</b> ${u.email}<br><b>Téléphone :</b> ${COUNTRIES[u.countryCode].dial} ${u.phone}<br><b>Pays :</b> ${COUNTRIES[u.countryCode].flag} ${COUNTRIES[u.countryCode].name}</p>
+      <p><b>Abonnement :</b> ${u.subscription.status==='active' ? `<span class="pill pill-emerald">Actif (${u.subscription.plan}) jusqu'au ${new Date(u.subscription.end).toLocaleDateString('fr-FR')}</span>` : `<span class="pill pill-clay">Inactif</span>`}</p>
+      ${u.subscription.status==='active' && u.subscription.plan==='essai' ? `<button class="btn btn-primary btn-sm" onclick="openSubscriptionModal('client')">Passer à l'abonnement annuel</button>`:""}
+    </div>
+    <h3 style="margin-top:26px;">Parrainage</h3>
+    <div class="card"><p>Partagez votre code de parrainage <b class="mono">${u.id.slice(-6).toUpperCase()}</b> : chaque filleul qui s'abonne vous crédite <b>500 FCFA</b> de portefeuille.</p></div>
+  `;
+}
+
+function renderWalletView(main, u){
+  const isArtisan = u.role==="artisan";
+  main.innerHTML = `<div class="main-head"><h1>Mon portefeuille</h1></div>
+    <div class="wallet-box"><span style="font-size:.8rem;opacity:.8;">Solde disponible</span><div class="bal">${fmtMoney(u.wallet.balance)}</div>
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        <button class="btn btn-primary btn-sm" onclick="openTopupModal()">+ Recharger</button>
+        ${isArtisan?`<button class="btn btn-outline btn-sm" style="border-color:#fff;color:#fff;" onclick="openWithdrawModal()">↓ Retirer</button>`:""}
+      </div>
+    </div>
+    <p style="font-size:.85rem;">Méthodes disponibles : ${GLOBAL_PAYMENT_METHODS.join(", ")}. Les frais de retrait sont inclus dans le prix minimum fixé par l'artisan pour chaque service.</p>
+  `;
+}
+function openWithdrawModal(){
+  openModal(`<button class="modal-close" onclick="closeModal()">✕</button>
+  <h3>Retirer des fonds</h3>
+  <div class="field"><label>Montant à retirer</label><input id="wd_amt" type="number"></div>
+  <div class="field"><label>Méthode</label><div class="wallet-methods" id="payPmGrid">${GLOBAL_PAYMENT_METHODS.map(m=>`<div class="pm-btn" onclick="selectPM(this,'${m}')">${m}</div>`).join("")}</div></div>
+  <button class="btn btn-emerald btn-block" onclick="confirmWithdraw()">Confirmer le retrait</button>`);
+}
+function confirmWithdraw(){
+  const amt = parseFloat(document.getElementById("wd_amt").value);
+  const u = currentUser();
+  if(!amt||amt<=0){ toast("Montant invalide.","err"); return; }
+  if(amt>u.wallet.balance){ toast("Solde insuffisant.","err"); return; }
+  if(!__selectedPM){ toast("Choisissez une méthode.","err"); return; }
+  u.wallet.balance -= amt; saveDB(DB); __selectedPM=null; closeModal();
+  toast("Retrait de "+fmtMoney(amt)+" initié.","ok"); render();
+}
+
+/* ---------------- ARTISAN VIEWS ---------------- */
+function renderArtisanOnboarding(main, u){
+  const countryOpts = Object.entries(COUNTRIES).map(([k,c])=>`<option value="${k}" ${u.countryCode===k?'selected':''}>${c.flag} ${c.name}</option>`).join("");
+  main.innerHTML = `
+    <div class="main-head"><h1>Complétez votre profil artisan</h1></div>
+    <div class="card">
+      <div class="field"><label>Pays d'activité</label><select id="ob_country">${countryOpts}</select></div>
+      <div class="field"><label>Position GPS de votre atelier / bureau</label>
+        <div id="obGpsStatus" class="gps-status">📍 Position non enregistrée</div>
+        <button class="btn btn-outline btn-sm" onclick="captureArtisanGps()">Utiliser ma position actuelle</button>
+      </div>
+      <div class="field full"><label>Métiers exercés (sélectionnez-en un ou plusieurs)</label>
+        <div class="trade-select-grid" id="tradeSelectGrid">
+          ${FLAT_TRADES.map(t=>`<label><input type="checkbox" value="${t}"> ${t}</label>`).join("")}
+        </div>
+      </div>
+      <div class="field"><label>Prix minimum d'un service (frais de retrait inclus)</label><input id="ob_price" type="number" placeholder="Ex: 5000"></div>
+      <button class="btn btn-primary btn-block" onclick="completeOnboarding()">Enregistrer mon profil et continuer</button>
+    </div>
+  `;
+}
+function captureArtisanGps(){
+  const statusEl = document.getElementById("obGpsStatus");
+  statusEl.textContent="📡 Localisation en cours…"; statusEl.className="gps-status";
+  if(!navigator.geolocation){ statusEl.textContent="GPS non supporté."; statusEl.className="gps-status err"; return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    window.__obGps = {lat:pos.coords.latitude, lng:pos.coords.longitude};
+    statusEl.textContent="✅ Position enregistrée ("+pos.coords.latitude.toFixed(4)+", "+pos.coords.longitude.toFixed(4)+")";
+    statusEl.className="gps-status ok";
+  }, err=>{
+    window.__obGps = {lat:6.1319,lng:1.2228};
+    statusEl.textContent="⚠️ Position par défaut utilisée (démo). "+err.message;
+    statusEl.className="gps-status err";
+  });
+}
+function completeOnboarding(){
+  const country = document.getElementById("ob_country").value;
+  const price = parseFloat(document.getElementById("ob_price").value);
+  const trades = Array.from(document.querySelectorAll("#tradeSelectGrid input:checked")).map(i=>i.value);
+  if(!window.__obGps){ toast("Merci d'enregistrer votre position GPS.","err"); return; }
+  if(!trades.length){ toast("Sélectionnez au moins un métier.","err"); return; }
+  if(!price || price<=0){ toast("Indiquez votre prix minimum.","err"); return; }
+  const u = currentUser();
+  u.countryCode=country; u.gps=window.__obGps; u.trades=trades; u.minPrice=price; u.available=true;
+  saveDB(DB);
+  toast("Profil complété !","ok");
+  go("/artisan");
+  setTimeout(()=>openSubscriptionModal("artisan"), 300);
+}
+
+function renderArtisanHome(main, u){
+  const myTasks = DB.tasks.filter(t=>t.artisanId===u.id);
+  const pending = myTasks.filter(t=>t.status==="pending");
+  const active = myTasks.filter(t=>!["closed","cancelled","pending"].includes(t.status));
+  main.innerHTML = `
+    <div class="main-head"><div><h1>Bonjour, ${u.name.split(' ')[0]} 🛠️</h1><p>${u.trades.join(", ")}</p></div>
+      <label class="checkbox-row" style="background:var(--paper); padding:10px 16px; border-radius:999px; border:1px solid var(--line);">
+        <input type="checkbox" ${u.available?'checked':''} onchange="toggleAvailability(this.checked)"> Disponible pour de nouvelles missions
+      </label>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><b>${pending.length}</b><span>Demandes en attente</span></div>
+      <div class="stat-box"><b>${active.length}</b><span>Missions en cours</span></div>
+      <div class="stat-box"><b>${fmtMoney(u.wallet.balance)}</b><span>Solde portefeuille</span></div>
+      <div class="stat-box"><b>${u.rating? u.rating.toFixed(1):'—'} ★</b><span>${u.ratingsCount} avis</span></div>
+    </div>
+    <h3>Demandes en attente</h3>
+    ${pending.length? pending.map(t=>taskRowArtisan(t)).join("") : `<div class="empty-state"><div class="icon-badge">📭</div>Aucune demande pour le moment.</div>`}
+  `;
+}
+function taskRowArtisan(t){
+  const client = DB.users.find(c=>c.id===t.clientId);
+  return `<div class="artisan-result">
+    <div class="avatar">${client.name.split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
+    <div class="info"><h4>${client.name} — ${t.trade}</h4><span class="pill pill-ochre">${statusLabel(t.status)}</span></div>
+    <button class="btn btn-dark btn-sm" onclick="go('/artisan/task/${t.id}')">Ouvrir</button>
+  </div>`;
+}
+function toggleAvailability(val){ const u=currentUser(); u.available=val; saveDB(DB); toast(val?"Vous êtes maintenant disponible.":"Vous êtes indisponible.", "ok"); }
+
+function renderArtisanRequests(main, u){
+  const tasks = DB.tasks.filter(t=>t.artisanId===u.id && !["closed","cancelled"].includes(t.status)).sort((a,b)=>b.createdAt-a.createdAt);
+  main.innerHTML = `<div class="main-head"><h1>Demandes reçues</h1></div>
+    ${tasks.length? tasks.map(t=>taskRowArtisan(t)).join("") : `<div class="empty-state"><div class="icon-badge">📭</div>Aucune demande active.</div>`}`;
+}
+function acceptTask(taskId){
+  const t = DB.tasks.find(x=>x.id===taskId); t.status="accepted"; saveDB(DB);
+  addNotif(t.clientId, "Demande acceptée !", "L'artisan a accepté votre demande et se met en route.");
+  toast("Mission acceptée.","ok"); render();
+}
+function declineTask(taskId){
+  const t = DB.tasks.find(x=>x.id===taskId); t.status="cancelled"; saveDB(DB);
+  addNotif(t.clientId, "Demande refusée", "L'artisan n'est pas disponible pour cette mission. Recherchez un autre artisan.");
+  toast("Mission refusée.",""); render();
+}
+function markArrived(taskId){
+  const t = DB.tasks.find(x=>x.id===taskId); t.status="arrived"; t.route=100; saveDB(DB);
+  addNotif(t.clientId, "Votre artisan est arrivé !", "Merci de sortir à la devanture pour l'accueillir.");
+  toast("Client notifié de votre arrivée.","ok"); render();
+}
+function renderArtisanTask(main, u, taskId){
+  const t = DB.tasks.find(x=>x.id===taskId);
+  if(!t){ main.innerHTML="<p>Tâche introuvable.</p>"; return; }
+  const client = DB.users.find(c=>c.id===t.clientId);
+  main.innerHTML = `
+    <div class="main-head"><h1>Mission — ${t.trade}</h1><span class="pill pill-ochre">${statusLabel(t.status)}</span></div>
+    <div class="card">
+      <div class="artisan-result" style="border:none; padding:0; margin-bottom:10px;">
+        <div class="avatar">${client.name.split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
+        <div class="info"><h4>${client.name}</h4></div>
+        <a class="btn btn-outline btn-sm" href="tel:${COUNTRIES[client.countryCode].dial}${client.phone}">📞 Appeler</a>
+      </div>
+      ${statusTimelineHtml(t.status)}
+      <div id="taskMap" class="task-track-map"></div>
+      <div id="taskActionZone"></div>
+    </div>
+  `;
+  initTaskMap(t);
+  renderTaskActionZone(t, u, "artisan");
+}
+function renderArtisanHistory(main, u){
+  const tasks = DB.tasks.filter(t=>t.artisanId===u.id).sort((a,b)=>b.createdAt-a.createdAt);
+  main.innerHTML = `<div class="main-head"><h1>Historique des missions</h1></div>
+    <table class="table"><thead><tr><th>Métier</th><th>Client</th><th>Statut</th><th>Gain net</th><th>Note</th><th></th></tr></thead>
+    <tbody>${tasks.map(t=>{
+      const c = DB.users.find(x=>x.id===t.clientId);
+      return `<tr><td>${t.trade}</td><td>${c.name}</td><td><span class="pill pill-muted">${statusLabel(t.status)}</span></td><td class="mono">${t.commission?fmtMoney(t.price-t.commission):'—'}</td><td>${t.rating?starsHtml(t.rating):'—'}</td><td><button class="btn btn-outline btn-sm" onclick="go('/artisan/task/${t.id}')">Voir</button></td></tr>`;
+    }).join("") || `<tr><td colspan="6" style="text-align:center;color:var(--muted);">Aucune mission pour le moment.</td></tr>`}</tbody></table>`;
+}
+function renderArtisanProfile(main, u){
+  main.innerHTML = `<div class="main-head"><h1>Mon profil artisan</h1></div>
+    <div class="card">
+      <p><b>Nom :</b> ${u.name}<br><b>Email :</b> ${u.email}<br><b>Téléphone :</b> ${COUNTRIES[u.countryCode].dial} ${u.phone}<br><b>Pays :</b> ${COUNTRIES[u.countryCode].flag} ${COUNTRIES[u.countryCode].name}</p>
+      <p><b>Note moyenne :</b> ${starsHtml(u.rating)} (${u.ratingsCount} avis)</p>
+      <p><b>Statut vérifié :</b> ${u.verified?'<span class="badge-verified">✔ Vérifié</span>':'Non vérifié — soumettez vos documents pour obtenir le badge.'}</p>
+      <p><b>Abonnement :</b> ${u.subscription.status==='active' ? `<span class="pill pill-emerald">Actif (${u.subscription.plan}) jusqu'au ${new Date(u.subscription.end).toLocaleDateString('fr-FR')}</span>` : `<span class="pill pill-clay">Inactif</span>`}</p>
+      ${u.subscription.status==='active' && u.subscription.plan==='essai' ? `<button class="btn btn-primary btn-sm" onclick="openSubscriptionModal('artisan')">Passer à l'abonnement annuel</button>`:""}
+    </div>
+    <h3 style="margin-top:26px;">Mes services</h3>
+    <div class="card">
+      <div class="trade-select-grid" id="editTradeGrid">${FLAT_TRADES.map(t=>`<label><input type="checkbox" value="${t}" ${u.trades.includes(t)?'checked':''}> ${t}</label>`).join("")}</div>
+      <div class="field" style="margin-top:14px;"><label>Prix minimum du service (frais de retrait inclus)</label><input id="editPrice" type="number" value="${u.minPrice}"></div>
+      <button class="btn btn-dark btn-sm" onclick="saveArtisanProfile()">Enregistrer les modifications</button>
+    </div>`;
+}
+function saveArtisanProfile(){
+  const trades = Array.from(document.querySelectorAll("#editTradeGrid input:checked")).map(i=>i.value);
+  const price = parseFloat(document.getElementById("editPrice").value);
+  const u = currentUser(); u.trades=trades; u.minPrice=price; saveDB(DB);
+  toast("Profil mis à jour.","ok"); render();
+}
+
+/* ---------------- ADMIN VIEWS ---------------- */
+function renderAdminHome(main){
+  const clients = DB.users.filter(u=>u.role==="client");
+  const artisans = DB.users.filter(u=>u.role==="artisan");
+  const subsRevenue = DB.users.reduce((sum,u)=>{
+    if(u.role==="client" && u.subscription.status==="active") sum += u.subscription.plan==="essai"?1500:7000;
+    if(u.role==="artisan" && u.subscription.status==="active") sum += u.subscription.plan==="essai"?2000:10000;
+    return sum;
+  },0);
+  const commissionRevenue = DB.tasks.reduce((s,t)=>s+(t.commission||0),0);
+  const activeTasks = DB.tasks.filter(t=>!["closed","cancelled"].includes(t.status)).length;
+  main.innerHTML = `
+    <div class="main-head"><h1>Vue d'ensemble — Administration</h1></div>
+    <div class="stat-row">
+      <div class="stat-box"><b>${clients.length}</b><span>Clients inscrits</span></div>
+      <div class="stat-box"><b>${artisans.length}</b><span>Artisans inscrits</span></div>
+      <div class="stat-box"><b>${fmtMoney(subsRevenue)}</b><span>Revenus abonnements (actifs)</span></div>
+      <div class="stat-box"><b>${fmtMoney(commissionRevenue)}</b><span>Revenus commissions</span></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><b>${activeTasks}</b><span>Tâches en cours</span></div>
+      <div class="stat-box"><b>${DB.tasks.length}</b><span>Tâches totales</span></div>
+      <div class="stat-box"><b>${artisans.filter(a=>a.available).length}</b><span>Artisans disponibles</span></div>
+      <div class="stat-box"><b>${artisans.filter(a=>a.verified).length}</b><span>Artisans vérifiés</span></div>
+    </div>
+    <h3>Répartition par pays</h3>
+    <table class="table"><thead><tr><th>Pays</th><th>Clients</th><th>Artisans</th></tr></thead>
+    <tbody>${Object.entries(COUNTRIES).map(([k,c])=>`<tr><td>${c.flag} ${c.name}</td><td>${clients.filter(u=>u.countryCode===k).length}</td><td>${artisans.filter(u=>u.countryCode===k).length}</td></tr>`).join("")}</tbody></table>
+  `;
+}
+function renderAdminUsers(main){
+  const users = DB.users.filter(u=>u.role!=="admin");
+  main.innerHTML = `<div class="main-head"><h1>Utilisateurs</h1></div>
+    <table class="table"><thead><tr><th>Nom</th><th>Rôle</th><th>Pays</th><th>Abonnement</th><th>Statut</th><th></th></tr></thead>
+    <tbody>${users.map(u=>`<tr><td>${u.name}<br><span style="color:var(--muted);font-size:.78rem;">${u.email}</span></td><td><span class="pill pill-muted">${u.role}</span></td><td>${COUNTRIES[u.countryCode]?.flag||''} ${COUNTRIES[u.countryCode]?.name||'—'}</td><td>${u.subscription?.status==='active'?`<span class="pill pill-emerald">${u.subscription.plan}</span>`:`<span class="pill pill-clay">inactif</span>`}</td><td>${u.blocked?'<span class="pill pill-clay">Suspendu</span>':'<span class="pill pill-emerald">Actif</span>'}</td><td><button class="btn btn-outline btn-sm" onclick="toggleBlockUser('${u.id}')">${u.blocked?'Réactiver':'Suspendre'}</button></td></tr>`).join("")}</tbody></table>`;
+}
+function toggleBlockUser(id){
+  const u = DB.users.find(x=>x.id===id); u.blocked = !u.blocked; saveDB(DB); toast("Statut mis à jour.","ok"); render();
+}
+function renderAdminTasks(main){
+  const tasks = DB.tasks.sort((a,b)=>b.createdAt-a.createdAt);
+  main.innerHTML = `<div class="main-head"><h1>Toutes les tâches</h1></div>
+    <table class="table"><thead><tr><th>Métier</th><th>Client</th><th>Artisan</th><th>Statut</th><th>Prix</th><th>Commission</th></tr></thead>
+    <tbody>${tasks.map(t=>{
+      const c = DB.users.find(x=>x.id===t.clientId), a = DB.users.find(x=>x.id===t.artisanId);
+      return `<tr><td>${t.trade}</td><td>${c?.name||'—'}</td><td>${a?.name||'—'}</td><td><span class="pill pill-muted">${statusLabel(t.status)}</span></td><td class="mono">${fmtMoney(t.price)}</td><td class="mono">${t.commission?fmtMoney(t.commission):'—'}</td></tr>`;
+    }).join("") || `<tr><td colspan="6" style="text-align:center;color:var(--muted);">Aucune tâche.</td></tr>`}</tbody></table>`;
+}
+</script>
+</body>
+</html>

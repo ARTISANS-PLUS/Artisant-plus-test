@@ -1,0 +1,12 @@
+{
+  "name": "Artisans+",
+  "short_name": "Artisans+",
+  "description": "Mise en relation géolocalisée avec des artisans qualifiés en Afrique de l'Ouest et au Rwanda.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F8F1E1",
+  "theme_color": "#141B33",
+  "icons": [
+    { "src": "assets/img/logo.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
