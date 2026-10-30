@@ -860,21 +860,6 @@ function switchRegisterTab(role){
     `;
   }
 }
-function submitClientRegister(){
-  const name=document.getElementById("rc_name").value.trim();
-  const email=document.getElementById("rc_email").value.trim().toLowerCase();
-  const country=document.getElementById("rc_country").value;
-  const phone=document.getElementById("rc_phone").value.trim();
-  const pass=document.getElementById("rc_pass").value;
-  if(!name||!email||!phone||!pass){ toast("Merci de remplir tous les champs.","err"); return; }
-  if(DB.users.some(u=>u.email.toLowerCase()===email)){ toast("Cet email est déjà utilisé.","err"); return; }
-  const user = {id:uid("cli"), role:"client", name, email, password:pass, phone, countryCode:country,
-    gps:null, subscription:{plan:null,status:"pending",end:null}, wallet:{balance:0}, favorites:[], createdAt:Date.now()};
-  DB.users.push(user); saveDB(DB);
-  SESSION={id:user.id}; persistSession();
-  openSubscriptionModal("client");
-}
-function submitArtisanRegister(){
  
 async function submitClientRegister(){
   const name = document.getElementById("rc_name").value.trim();
@@ -932,10 +917,16 @@ async function submitClientRegister(){
       return;
     }
 
-    toast("Compte créé avec succès !", "ok");
-    SESSION = {id: data.user.id};
-    persistSession();
-    openSubscriptionModal("client");
+const user = await loadUserProfile(data.user.id);
+
+if(!user){
+  await window.supabase.auth.signOut();
+  toast("Impossible de récupérer votre profil.", "err");
+  return;
+}
+
+toast("Compte créé avec succès !", "ok");
+openSubscriptionModal("client");
 
   } catch(error) {
     toast("Une erreur est survenue lors de l'inscription.", "err");
@@ -943,8 +934,7 @@ async function submitClientRegister(){
   }
 }
 
-}
-
+   
 /* =========================================================================================
    MODALES
    ========================================================================================= */
