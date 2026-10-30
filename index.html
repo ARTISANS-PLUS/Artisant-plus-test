@@ -669,7 +669,11 @@ function go(path){
   location.hash = "#"+path;
 }
 window.addEventListener("hashchange", render);
-window.addEventListener("DOMContentLoaded", ()=>{ renderStaticContent(); render(); });
+
+window.addEventListener("DOMContentLoaded", ()=>{
+  renderStaticContent();
+  initializeSupabaseAuth();
+});
 
 function currentPath(){
   let h = location.hash.replace(/^#/,"");
