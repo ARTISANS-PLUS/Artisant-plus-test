@@ -934,6 +934,79 @@ openSubscriptionModal("client");
   }
 }
 
+async function submitArtisanRegister(){
+  const name = document.getElementById("ra_name").value.trim();
+  const email = document.getElementById("ra_email").value.trim().toLowerCase();
+  const country = document.getElementById("ra_country").value;
+  const phone = document.getElementById("ra_phone").value.trim();
+  const pass = document.getElementById("ra_pass").value;
+
+  if(!name || !email || !phone || !pass){
+    toast("Merci de remplir tous les champs.", "err");
+    return;
+  }
+
+  if(pass.length < 6){
+    toast("Le mot de passe doit contenir au moins 6 caractères.", "err");
+    return;
+  }
+
+  if(!window.supabase){
+    toast("Le service Supabase n'est pas disponible.", "err");
+    return;
+  }
+
+  try {
+    const { data, error } = await window.supabase.auth.signUp({
+      email: email,
+      password: pass,
+      options: {
+        data: {
+          role: "artisan",
+          full_name: name,
+          phone: country + phone
+        }
+      }
+    });
+
+    if(error){
+      toast(error.message, "err");
+      return;
+    }
+
+    if(data.user && !data.session){
+      document.getElementById("authBody").innerHTML = `
+        <div style="text-align:center; padding:25px 10px;">
+          <h2>Vérifiez votre adresse e-mail</h2>
+          <p>Votre compte artisan a été créé avec succès.</p>
+          <p>Nous vous avons envoyé un e-mail de confirmation.</p>
+          <p>Ouvrez cet e-mail et cliquez sur le lien pour activer votre compte.</p>
+          <button class="btn btn-primary btn-block"
+            onclick="go('/login')">
+            Aller à la connexion
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    const user = await loadUserProfile(data.user.id);
+
+    if(!user){
+      await window.supabase.auth.signOut();
+      toast("Impossible de récupérer votre profil.", "err");
+      return;
+    }
+
+    toast("Compte artisan créé avec succès !", "ok");
+    go("/artisan");
+
+  } catch(error) {
+    console.error(error);
+    toast("Une erreur est survenue lors de l'inscription.", "err");
+  }
+}
+
    
 /* =========================================================================================
    MODALES
