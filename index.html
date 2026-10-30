@@ -740,16 +740,58 @@ function renderLogin(){
     </div>
   `;
 }
-function doLogin(){
+
+async function doLogin(){
   const email = document.getElementById("li_email").value.trim().toLowerCase();
   const pass = document.getElementById("li_pass").value;
-  const user = DB.users.find(u=>u.email.toLowerCase()===email && u.password===pass);
-  if(!user){ toast("Email ou mot de passe incorrect.", "err"); return; }
-  if(user.blocked){ toast("Ce compte a été suspendu par l'administrateur.", "err"); return; }
-  SESSION = {id:user.id}; persistSession();
-  toast("Bienvenue "+user.name.split(" ")[0]+" 👋", "ok");
-  go(user.role==="admin" ? "/admin" : user.role==="artisan" ? "/artisan" : "/client");
+
+  if(!email || !pass){
+    toast("Veuillez saisir votre e-mail et votre mot de passe.", "err");
+    return;
+  }
+
+  if(!window.supabase){
+    toast("Le service Supabase n'est pas disponible.", "err");
+    return;
+  }
+
+  try {
+    const { data, error } = await window.supabase.auth.signInWithPassword({
+      email: email,
+      password: pass
+    });
+
+    if(error){
+      toast("E-mail ou mot de passe incorrect.", "err");
+      return;
+    }
+
+    const user = await loadUserProfile(data.user.id);
+
+    if(!user){
+      await window.supabase.auth.signOut();
+      toast("Impossible de récupérer votre profil.", "err");
+      return;
+    }
+
+    if(user.blocked){
+      await window.supabase.auth.signOut();
+      AUTH_USER = null;
+      toast("Ce compte a été suspendu par l'administrateur.", "err");
+      return;
+    }
+
+    toast("Bienvenue " + user.name.split(" ")[0] + " 👋", "ok");
+
+    go(user.role === "admin" ? "/admin" :
+       user.role === "artisan" ? "/artisan" : "/client");
+
+  } catch(error) {
+    console.error(error);
+    toast("Une erreur est survenue lors de la connexion.", "err");
+  }
 }
+
 function logout(){ SESSION=null; persistSession(); go("/"); }
 
 function renderRegister(defaultRole){
