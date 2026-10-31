@@ -1146,18 +1146,48 @@ function openTopupModal(){
     <button class="btn btn-primary btn-block" onclick="confirmTopup()">Recharger</button>
   `);
 }
-function confirmTopup(){
-  const amt = parseFloat(document.getElementById("topup_amt").value);
+async function confirmTopup(){
+  const amt = parseInt(document.getElementById("topup_amt").value, 10);
   const phone = document.getElementById("topup_phone").value.trim();
-  if(!amt || amt<=0){ toast("Entrez un montant valide.","err"); return; }
-  if(!__selectedPM || !phone){ toast("Complétez la méthode de paiement.","err"); return; }
+  const u = currentUser();
+
+  if(!Number.isInteger(amt) || amt <= 0){
+    toast("Entrez un montant valide.", "err");
+    return;
+  }
+
+  if(!__selectedPM || !phone){
+    toast("Complétez la méthode de paiement et le numéro.", "err");
+    return;
+  }
+
+  if(!u || !window.supabase){
+    toast("Utilisateur ou service Supabase indisponible.", "err");
+    return;
+  }
+
+  const { error } = await window.supabase
+    .from("wallet_transactions")
+    .insert({
+      user_id: u.id,
+      kind: "top_up",
+      status: "pending",
+      amount: amt,
+      currency: "XOF",
+      provider: __selectedPM,
+      note: "Demande de recharge - numéro : " + phone
+    });
+
+  if(error){
+    console.error("Erreur d'enregistrement de la recharge :", error);
+    toast("Impossible d'enregistrer la demande de recharge.", "err");
+    return;
+  }
+
   closeModal();
-  toast("Confirmation du paiement via "+__selectedPM+"...","");
-  setTimeout(()=>{
-    const u=currentUser(); u.wallet.balance += amt; saveDB(DB); __selectedPM=null;
-    toast("Portefeuille rechargé de "+fmtMoney(amt)+".","ok");
-    render();
-  },1200);
+  __selectedPM = null;
+
+  toast("Demande de recharge enregistrée. Paiement en attente de confirmation.", "ok");
 }
 
 /* =========================================================================================
