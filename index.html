@@ -1515,11 +1515,23 @@ function renderClientHistory(main, u){
 }
 
 function renderProfileView(main, u){
+  const country = COUNTRIES[u.countryCode] || null;
+  const subscription = u.subscription || {};
+
   main.innerHTML = `<div class="main-head"><h1>Mon profil</h1></div>
     <div class="card">
-      <p><b>Nom :</b> ${u.name}<br><b>Email :</b> ${u.email}<br><b>Téléphone :</b> ${COUNTRIES[u.countryCode].dial} ${u.phone}<br><b>Pays :</b> ${COUNTRIES[u.countryCode].flag} ${COUNTRIES[u.countryCode].name}</p>
-      <p><b>Abonnement :</b> ${u.subscription.status==='active' ? `<span class="pill pill-emerald">Actif (${u.subscription.plan}) jusqu'au ${new Date(u.subscription.end).toLocaleDateString('fr-FR')}</span>` : `<span class="pill pill-clay">Inactif</span>`}</p>
-      ${u.subscription.status==='active' && u.subscription.plan==='essai' ? `<button class="btn btn-primary btn-sm" onclick="openSubscriptionModal('client')">Passer à l'abonnement annuel</button>`:""}
+      <p>
+        <b>Nom :</b> ${u.name || "Non renseigné"}<br>
+        <b>Email :</b> ${u.email || "Non renseigné"}<br>
+        <b>Téléphone :</b> ${country ? country.dial : ""} ${u.phone || "Non renseigné"}<br>
+        <b>Pays :</b> ${country ? country.flag + " " + country.name : "Non renseigné"}
+      </p>
+      <p><b>Abonnement :</b> ${subscription.status === 'active'
+        ? `<span class="pill pill-emerald">Actif (${subscription.plan || ""}) jusqu'au ${subscription.end ? new Date(subscription.end).toLocaleDateString('fr-FR') : "—"}</span>`
+        : `<span class="pill pill-clay">Inactif</span>`}</p>
+      ${subscription.status === 'active' && subscription.plan === 'essai'
+        ? `<button class="btn btn-primary btn-sm" onclick="openSubscriptionModal('client')">Passer à l'abonnement annuel</button>`
+        : ""}
     </div>
     <h3 style="margin-top:26px;">Parrainage</h3>
     <div class="card"><p>Partagez votre code de parrainage <b class="mono">${u.id.slice(-6).toUpperCase()}</b> : chaque filleul qui s'abonne vous crédite <b>500 FCFA</b> de portefeuille.</p></div>
