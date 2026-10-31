@@ -1218,20 +1218,38 @@ function toggleNotifDropdown(){
 
 /* ---------------- CLIENT VIEWS ---------------- */
 function renderClientHome(main, u){
-  const myTasks = DB.tasks.filter(t=>t.clientId===u.id);
+  const myTasks = (DB.tasks || []).filter(t=>t.clientId===u.id);
   const active = myTasks.filter(t=>!["closed","cancelled"].includes(t.status));
+
+  const walletBalance = u.wallet?.balance ?? 0;
+  const subscription = u.subscription || {};
+  const subscriptionEnd = subscription.end
+    ? new Date(subscription.end).toLocaleDateString('fr-FR')
+    : '—';
+
   main.innerHTML = `
-    <div class="main-head"><div><h1>Bonjour, ${u.name.split(' ')[0]} 👋</h1><p>Trouvez un artisan disponible près de vous en quelques clics.</p></div>
+    <div class="main-head">
+      <div>
+        <h1>Bonjour, ${(u.name || 'Client').split(' ')[0]} 👋</h1>
+        <p>Trouvez un artisan disponible près de vous en quelques clics.</p>
+      </div>
       <button class="btn btn-primary" onclick="go('/client/search')">+ Nouvelle demande</button>
     </div>
     <div class="stat-row">
       <div class="stat-box"><b>${myTasks.length}</b><span>Tâches totales</span></div>
       <div class="stat-box"><b>${active.length}</b><span>En cours</span></div>
-      <div class="stat-box"><b>${fmtMoney(u.wallet.balance)}</b><span>Solde portefeuille</span></div>
-      <div class="stat-box"><b>${u.subscription.status==='active' ? new Date(u.subscription.end).toLocaleDateString('fr-FR') : '—'}</b><span>Abonnement valide jusqu'au</span></div>
+      <div class="stat-box"><b>${fmtMoney(walletBalance)}</b><span>Solde portefeuille</span></div>
+      <div class="stat-box"><b>${subscription.status === 'active' ? subscriptionEnd : '—'}</b><span>Abonnement valide jusqu'au</span></div>
     </div>
     <h3>Tâches en cours</h3>
-    ${active.length? active.map(t=>taskRowClient(t)).join("") : `<div class="empty-state"><div class="icon-badge">📭</div>Aucune tâche en cours. <br><button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="go('/client/search')">Chercher un artisan</button></div>`}
+    ${active.length ? active.map(t=>taskRowClient(t)).join("") : `
+      <div class="empty-state">
+        <div class="icon-badge">📭</div>
+        Aucune tâche en cours.
+        <br>
+        <button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="go('/client/search')">Chercher un artisan</button>
+      </div>
+    `}
   `;
 }
 function taskRowClient(t){
