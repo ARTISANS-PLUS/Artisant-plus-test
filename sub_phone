@@ -1048,22 +1048,64 @@ function openSubscriptionModal(role){
 let __selectedPM = null;
 function selectPM(el, name){ document.querySelectorAll("#subPmGrid .pm-btn, #walletPmGrid .pm-btn, #payPmGrid .pm-btn").forEach(b=>b.classList.remove("selected")); el.classList.add("selected"); __selectedPM=name; }
 function selectPlanRadio(){}
-function paySubscription(role, price3, priceY){
+async function paySubscription(role, price3, priceY){
   const plan = document.querySelector('input[name="plan"]:checked').value;
   const phone = document.getElementById("sub_phone").value.trim();
-  if(!__selectedPM){ toast("Choisissez une méthode de paiement.","err"); return; }
-  if(!phone){ toast("Entrez le numéro utilisé pour le paiement.","err"); return; }
-  const amount = plan==="essai" ? price3 : priceY;
-  toast("Traitement du paiement via "+__selectedPM+"...", "");
+
+  if(!__selectedPM){
+    toast("Choisissez une méthode de paiement.","err");
+    return;
+  }
+
+  if(!phone){
+    toast("Entrez le numéro utilisé pour le paiement.","err");
+    return;
+  }
+
+  const u = currentUser();
+
+  if(!u || !window.supabase){
+    toast("Utilisateur ou service Supabase indisponible.","err");
+    return;
+  }
+
+  const amount = plan === "essai" ? price3 : priceY;
+  const days = plan === "essai" ? 90 : 365;
+
+  toast("Traitement du paiement simulé...", "");
+
+  const { data, error } = await window.supabase
+    .from("subscriptions")
+    .insert({
+      user_id: u.id,
+      plan_code: plan,
+      status: "active",
+      starts_at: new Date().toISOString(),
+      ends_at: new Date(Date.now() + days * 86400000).toISOString(),
+      provider: __selectedPM,
+      provider_reference: "DEMO-" + Date.now()
+    })
+    .select()
+    .single();
+
+  if(error){
+    console.error("Erreur d'enregistrement de l'abonnement :", error);
+    toast("Impossible d'enregistrer l'abonnement dans Supabase.","err");
+    return;
+  }
+
+  u.subscription = {
+    plan: plan,
+    status: data.status,
+    end: new Date(data.ends_at).getTime(),
+    method: __selectedPM
+  };
+
+  __selectedPM = null;
   closeModal();
-  setTimeout(()=>{
-    const u = currentUser();
-    const days = plan==="essai" ? 90 : 365;
-    u.subscription = {plan, status:"active", end: Date.now()+days*86400000, method:__selectedPM};
-    saveDB(DB); __selectedPM=null;
-    toast("Paiement confirmé ! Abonnement "+(plan==='essai'?'essai 3 mois':'annuel')+" activé.", "ok");
-    render();
-  }, 1400);
+
+  toast("Abonnement de démonstration activé !","ok");
+  render();
 }
 
 function openTopupModal(){
