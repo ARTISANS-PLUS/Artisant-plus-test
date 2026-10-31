@@ -1101,7 +1101,7 @@ function renderAppShell(path, params){
   const main = document.getElementById("mainArea");
 
   if(u.role==="client"){
-    if(u.subscription.status!=="active" && !path.startsWith("/client/onboarding")){
+    if(u.subscription?.status!=="active" && !path.startsWith("/client/onboarding")){
       openSubscriptionModal("client");
     }
     if(path==="/client") return renderClientHome(main, u);
