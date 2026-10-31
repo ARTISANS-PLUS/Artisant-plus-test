@@ -1529,7 +1529,7 @@ function renderProfileView(main, u){
 function renderWalletView(main, u){
   const isArtisan = u.role==="artisan";
   main.innerHTML = `<div class="main-head"><h1>Mon portefeuille</h1></div>
-    <div class="wallet-box"><span style="font-size:.8rem;opacity:.8;">Solde disponible</span><div class="bal">${fmtMoney(u.wallet.balance)}</div>
+    <div class="wallet-box"><span style="font-size:.8rem;opacity:.8;">Solde disponible</span><div class="bal">${fmtMoney(u.wallet?.balance ?? 0)}</div>
       <div style="display:flex; gap:10px; margin-top:14px;">
         <button class="btn btn-primary btn-sm" onclick="openTopupModal()">+ Recharger</button>
         ${isArtisan?`<button class="btn btn-outline btn-sm" style="border-color:#fff;color:#fff;" onclick="openWithdrawModal()">↓ Retirer</button>`:""}
