@@ -589,7 +589,33 @@ async function loadUserProfile(userId){
       user.ratingsCount = artisanProfile.rating_count;
     }
   }
+  const { data: subscription, error: subscriptionError } = await window.supabase
+    .from("subscriptions")
+    .select("*")
+    .eq("user_id", userId)
+    .in("status", ["active", "trial"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
+  if(subscriptionError){
+    console.error("Erreur de récupération de l'abonnement :", subscriptionError);
+  }
+
+  if(subscription){
+    user.subscription = {
+      plan: subscription.plan_code,
+      status: subscription.status,
+      end: subscription.ends_at
+        ? new Date(subscription.ends_at).getTime()
+        : null,
+      method: subscription.provider
+    };
+  } else {
+    user.subscription = {
+      status: "inactive"
+    };
+  }
   AUTH_USER = user;
   return user;
 }
