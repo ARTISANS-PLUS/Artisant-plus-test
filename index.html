@@ -1116,7 +1116,7 @@ function renderAppShell(path, params){
     if(params.get("onboarding") || !u.trades || u.trades.length===0 || !u.gps){
       return renderArtisanOnboarding(main, u);
     }
-    if(u.subscription.status!=="active"){ openSubscriptionModal("artisan"); }
+  if(u.subscription?.status!=="active"){ openSubscriptionModal("artisan"); }
     if(path==="/artisan") return renderArtisanHome(main, u);
     if(path==="/artisan/requests") return renderArtisanRequests(main, u);
     if(path.startsWith("/artisan/task/")) return renderArtisanTask(main, u, path.split("/").pop());
