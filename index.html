@@ -2049,12 +2049,22 @@ function renderArtisanHome(main, u){
   `;
 }
 function taskRowArtisan(t){
-  const client = DB.users.find(c=>c.id===t.clientId);
-  return `<div class="artisan-result">
-    <div class="avatar">${client.name.split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
-    <div class="info"><h4>${client.name} — ${t.trade}</h4><span class="pill pill-ochre">${statusLabel(t.status)}</span></div>
-    <button class="btn btn-dark btn-sm" onclick="go('/artisan/task/${t.id}')">Ouvrir</button>
-  </div>`;
+  const clientName = t.clientName || "Client";
+
+  return `
+    <div class="artisan-result">
+      <div class="avatar">
+        ${clientName.split(" ").map(w=>w[0]).join("").slice(0,2)}
+      </div>
+      <div class="info">
+        <h4>${clientName} — ${t.trade}</h4>
+        <span class="pill pill-ochre">${statusLabel(t.status)}</span>
+      </div>
+      <button class="btn btn-dark btn-sm" onclick="go('/artisan/task/${t.id}')">
+        Ouvrir
+      </button>
+    </div>
+  `;
 }
 function toggleAvailability(val){ const u=currentUser(); u.available=val; saveDB(DB); toast(val?"Vous êtes maintenant disponible.":"Vous êtes indisponible.", "ok"); }
 
