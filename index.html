@@ -1956,24 +1956,90 @@ function markArrived(taskId){
   addNotif(t.clientId, "Votre artisan est arrivé !", "Merci de sortir à la devanture pour l'accueillir.");
   toast("Client notifié de votre arrivée.","ok"); render();
 }
-function renderArtisanTask(main, u, taskId){
-  const t = DB.tasks.find(x=>x.id===taskId);
-  if(!t){ main.innerHTML="<p>Tâche introuvable.</p>"; return; }
-  const client = DB.users.find(c=>c.id===t.clientId);
+async function renderArtisanTask(main, u, taskId){
+  main.innerHTML = "<p>Chargement de la mission...</p>";
+
+  const { data: mission, error } = await window.supabase
+    .from("missions")
+    .select("*")
+    .eq("id", taskId)
+    .single();
+
+  if(error || !mission){
+    console.error("Erreur de récupération de la mission :", error);
+    main.innerHTML = "<p>Mission introuvable ou inaccessible.</p>";
+    return;
+  }
+
+  const contact = await getMissionContact(taskId);
+
+  if(!contact){
+    main.innerHTML = "<p>Impossible de récupérer les informations du client.</p>";
+    return;
+  }
+
+  const statusMap = {
+    requested: "pending",
+    accepted: "accepted",
+    en_route: "enroute",
+    arrived: "arrived",
+    in_progress: "in_progress",
+    completed: "closed",
+    cancelled: "cancelled"
+  };
+
+  const t = {
+    id: mission.id,
+    trade: mission.trade,
+    status: statusMap[mission.status] || mission.status,
+    clientId: mission.client_id,
+    artisanId: mission.artisan_id,
+    price: mission.quoted_amount || 0,
+    clientGPS: (
+      mission.client_latitude !== null &&
+      mission.client_longitude !== null
+    ) ? {
+      lat: mission.client_latitude,
+      lng: mission.client_longitude
+    } : null,
+    artisanGPS: u.gps || null,
+    route: 0
+  };
+
+  const initials = (contact.full_name || "Client")
+    .split(" ")
+    .map(w => w[0])
+    .join("")
+    .slice(0, 2);
+
+  const dial = COUNTRIES[contact.country_code]?.dial || "";
+
   main.innerHTML = `
-    <div class="main-head"><h1>Mission — ${t.trade}</h1><span class="pill pill-ochre">${statusLabel(t.status)}</span></div>
+    <div class="main-head">
+      <h1>Mission — ${t.trade}</h1>
+      <span class="pill pill-ochre">${statusLabel(t.status)}</span>
+    </div>
     <div class="card">
       <div class="artisan-result" style="border:none; padding:0; margin-bottom:10px;">
-        <div class="avatar">${client.name.split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
-        <div class="info"><h4>${client.name}</h4></div>
-        <a class="btn btn-outline btn-sm" href="tel:${COUNTRIES[client.countryCode].dial}${client.phone}">📞 Appeler</a>
+        <div class="avatar">${initials}</div>
+        <div class="info">
+          <h4>${contact.full_name || "Client"}</h4>
+        </div>
+        ${contact.phone ? `<a class="btn btn-outline btn-sm" href="tel:${dial}${contact.phone}">📞 Appeler</a>` : ""}
       </div>
       ${statusTimelineHtml(t.status)}
       <div id="taskMap" class="task-track-map"></div>
       <div id="taskActionZone"></div>
     </div>
   `;
-  initTaskMap(t);
+
+  if(t.clientGPS){
+    initTaskMap(t);
+  } else {
+    document.getElementById("taskMap").innerHTML =
+      "<p>Position du client non disponible.</p>";
+  }
+
   renderTaskActionZone(t, u, "artisan");
 }
 function renderArtisanHistory(main, u){
