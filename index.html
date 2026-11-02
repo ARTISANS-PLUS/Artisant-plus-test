@@ -587,6 +587,17 @@ if(artisanProfile){
   user.verified = artisanProfile.is_verified;
   user.rating = artisanProfile.rating;
   user.ratingsCount = artisanProfile.rating_count;
+
+  user.countryCode = profile.country_code || null;
+  user.city = artisanProfile.city || null;
+
+  user.gps = (
+    artisanProfile.latitude !== null &&
+    artisanProfile.longitude !== null
+  ) ? {
+    lat: artisanProfile.latitude,
+    lng: artisanProfile.longitude
+  } : null;
 }
   const { data: subscription, error: subscriptionError } = await window.supabase
     .from("subscriptions")
