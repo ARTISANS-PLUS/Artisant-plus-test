@@ -2058,10 +2058,54 @@ function taskRowArtisan(t){
 }
 function toggleAvailability(val){ const u=currentUser(); u.available=val; saveDB(DB); toast(val?"Vous êtes maintenant disponible.":"Vous êtes indisponible.", "ok"); }
 
-function renderArtisanRequests(main, u){
-  const tasks = DB.tasks.filter(t=>t.artisanId===u.id && !["closed","cancelled"].includes(t.status)).sort((a,b)=>b.createdAt-a.createdAt);
-  main.innerHTML = `<div class="main-head"><h1>Demandes reçues</h1></div>
-    ${tasks.length? tasks.map(t=>taskRowArtisan(t)).join("") : `<div class="empty-state"><div class="icon-badge">📭</div>Aucune demande active.</div>`}`;
+async function renderArtisanRequests(main, u){
+  main.innerHTML = `
+    <div class="main-head"><h1>Demandes reçues</h1></div>
+    <p>Chargement des demandes...</p>
+  `;
+
+  const { data: missions, error } = await window.supabase
+    .from("missions")
+    .select("*")
+    .eq("artisan_id", u.id)
+    .not("status", "in", '("completed","cancelled")')
+    .order("requested_at", { ascending: false });
+
+  if(error){
+    console.error("Erreur de récupération des demandes :", error);
+    main.innerHTML = `
+      <div class="main-head"><h1>Demandes reçues</h1></div>
+      <div class="empty-state">Impossible de récupérer les demandes.</div>
+    `;
+    return;
+  }
+
+  const tasks = await Promise.all((missions || []).map(async mission => {
+    const contact = await getMissionContact(mission.id);
+
+    return {
+      id: mission.id,
+      trade: mission.trade,
+      status: {
+        requested: "pending",
+        accepted: "accepted",
+        en_route: "enroute",
+        arrived: "arrived",
+        in_progress: "in_progress",
+        completed: "closed",
+        cancelled: "cancelled"
+      }[mission.status] || mission.status,
+      clientName: contact?.full_name || "Client"
+    };
+  }));
+
+  main.innerHTML = `
+    <div class="main-head"><h1>Demandes reçues</h1></div>
+    ${tasks.length
+      ? tasks.map(t => taskRowArtisan(t)).join("")
+      : `<div class="empty-state"><div class="icon-badge">📭</div>Aucune demande active.</div>`
+    }
+  `;
 }
 async function acceptTask(taskId){
   const { data, error } = await window.supabase.rpc(
