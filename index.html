@@ -2075,24 +2075,70 @@ function completeOnboarding(){
   setTimeout(()=>openSubscriptionModal("artisan"), 300);
 }
 
-function renderArtisanHome(main, u){
-  const myTasks = DB.tasks.filter(t=>t.artisanId===u.id);
-  const pending = myTasks.filter(t=>t.status==="pending");
-  const active = myTasks.filter(t=>!["closed","cancelled","pending"].includes(t.status));
+async function renderArtisanHome(main, u){
+  main.innerHTML = "<p>Chargement de votre tableau de bord...</p>";
+
+  const { data: missions, error } = await window.supabase
+    .from("missions")
+    .select("*")
+    .eq("artisan_id", u.id)
+    .order("requested_at", { ascending: false });
+
+  if(error){
+    console.error("Erreur de récupération des missions :", error);
+    main.innerHTML = "<p>Impossible de charger vos missions.</p>";
+    return;
+  }
+
+  const statusMap = {
+    requested: "pending",
+    accepted: "accepted",
+    en_route: "enroute",
+    arrived: "arrived",
+    in_progress: "in_progress",
+    completed: "closed",
+    cancelled: "cancelled"
+  };
+
+  const myTasks = (missions || []).map(m => ({
+    id: m.id,
+    trade: m.trade,
+    status: statusMap[m.status] || m.status,
+    clientName: ""
+  }));
+
+  const pending = myTasks.filter(t => t.status === "pending");
+  const active = myTasks.filter(t =>
+    !["closed", "cancelled", "pending"].includes(t.status)
+  );
+
+  const walletBalance = u.wallet?.balance ?? 0;
+
   main.innerHTML = `
-    <div class="main-head"><div><h1>Bonjour, ${u.name.split(' ')[0]} 🛠️</h1><p>${u.trades.join(", ")}</p></div>
+    <div class="main-head">
+      <div>
+        <h1>Bonjour, ${(u.name || "Artisan").split(" ")[0]} 🛠️</h1>
+        <p>${(u.trades || []).join(", ")}</p>
+      </div>
       <label class="checkbox-row" style="background:var(--paper); padding:10px 16px; border-radius:999px; border:1px solid var(--line);">
-        <input type="checkbox" ${u.available?'checked':''} onchange="toggleAvailability(this.checked)"> Disponible pour de nouvelles missions
+        <input type="checkbox" ${u.available ? "checked" : ""} onchange="toggleAvailability(this.checked)">
+        Disponible pour de nouvelles missions
       </label>
     </div>
+
     <div class="stat-row">
       <div class="stat-box"><b>${pending.length}</b><span>Demandes en attente</span></div>
       <div class="stat-box"><b>${active.length}</b><span>Missions en cours</span></div>
-      <div class="stat-box"><b>${fmtMoney(u.wallet.balance)}</b><span>Solde portefeuille</span></div>
-      <div class="stat-box"><b>${u.rating? u.rating.toFixed(1):'—'} ★</b><span>${u.ratingsCount} avis</span></div>
+      <div class="stat-box"><b>${fmtMoney(walletBalance)}</b><span>Solde portefeuille</span></div>
+      <div class="stat-box"><b>${u.rating ? u.rating.toFixed(1) : "—"} ★</b><span>${u.ratingsCount || 0} avis</span></div>
     </div>
+
     <h3>Demandes en attente</h3>
-    ${pending.length? pending.map(t=>taskRowArtisan(t)).join("") : `<div class="empty-state"><div class="icon-badge">📭</div>Aucune demande pour le moment.</div>`}
+
+    ${pending.length
+      ? pending.map(t => taskRowArtisan(t)).join("")
+      : `<div class="empty-state"><div class="icon-badge">📭</div>Aucune demande pour le moment.</div>`
+    }
   `;
 }
 function taskRowArtisan(t){
