@@ -564,6 +564,7 @@ async function loadUserProfile(userId){
     name: profile.full_name,
     email: profile.email,
     phone: profile.phone,
+    countryCode: profile.country_code || null,
     role: profile.role,
     blocked: profile.is_suspended
   };
@@ -577,28 +578,29 @@ async function loadUserProfile(userId){
 
     if(artisanError){
       console.error("Erreur de récupération du profil artisan :", artisanError);
+      return null;
     }
 
-if(artisanProfile){
-  user.trades = artisanProfile.trades;
-  user.bio = artisanProfile.bio;
-  user.minPrice = artisanProfile.min_price;
-  user.available = artisanProfile.is_available;
-  user.verified = artisanProfile.is_verified;
-  user.rating = artisanProfile.rating;
-  user.ratingsCount = artisanProfile.rating_count;
+    if(artisanProfile){
+      user.trades = artisanProfile.trades || [];
+      user.bio = artisanProfile.bio || "";
+      user.minPrice = artisanProfile.min_price;
+      user.available = artisanProfile.is_available;
+      user.verified = artisanProfile.is_verified;
+      user.rating = artisanProfile.rating;
+      user.ratingsCount = artisanProfile.rating_count;
+      user.city = artisanProfile.city || null;
 
-  user.countryCode = profile.country_code || null;
-  user.city = artisanProfile.city || null;
+      user.gps = (
+        artisanProfile.latitude != null &&
+        artisanProfile.longitude != null
+      ) ? {
+        lat: artisanProfile.latitude,
+        lng: artisanProfile.longitude
+      } : null;
+    }
+  }
 
-  user.gps = (
-    artisanProfile.latitude !== null &&
-    artisanProfile.longitude !== null
-  ) ? {
-    lat: artisanProfile.latitude,
-    lng: artisanProfile.longitude
-  } : null;
-}
   const { data: subscription, error: subscriptionError } = await window.supabase
     .from("subscriptions")
     .select("*")
@@ -626,10 +628,10 @@ if(artisanProfile){
       status: "inactive"
     };
   }
+
   AUTH_USER = user;
   return user;
 }
-
 async function initializeSupabaseAuth(){
   if(!window.supabase){
     console.error("Supabase n'est pas disponible.");
