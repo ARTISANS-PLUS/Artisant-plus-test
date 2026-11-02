@@ -1581,6 +1581,12 @@ async function requestArtisan(artisanId, trade){
     return;
   }
 
+  if(u.subscription?.status !== "active"){
+    toast("Un abonnement actif est nécessaire pour commander une prestation.", "err");
+    openSubscriptionModal("client");
+    return;
+  }
+
   try {
     const { data: artisan, error: artisanError } = await window.supabase
       .from("public_artisan_profiles")
