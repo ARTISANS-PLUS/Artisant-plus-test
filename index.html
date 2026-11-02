@@ -1832,9 +1832,22 @@ function renderTaskActionZone(t, u, viewer){
 
   zone.innerHTML = html;
 }
-function startPrestation(taskId){
-  const t = DB.tasks.find(x=>x.id===taskId); t.status="in_progress"; saveDB(DB);
-  addNotif(t.artisanId, "Prestation démarrée", "Le client a confirmé le début de la prestation.");
+async function startPrestation(taskId){
+  const { error } = await window.supabase.rpc(
+    "update_mission_status",
+    {
+      p_mission_id: taskId,
+      p_new_status: "in_progress"
+    }
+  );
+
+  if(error){
+    console.error("Erreur au démarrage de la prestation :", error);
+    toast("Impossible de démarrer la prestation.", "err");
+    return;
+  }
+
+  toast("La prestation a commencé.", "ok");
   render();
 }
 function openPayTaskModal(taskId){
