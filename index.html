@@ -1334,24 +1334,57 @@ function renderClientSearch(main, u){
     <div id="searchResults"></div>
   `;
 }
-function locateAndSearch(){
+async function locateAndSearch(){
   const trade = document.getElementById("searchTrade").value.trim();
-  if(!trade){ toast("Précisez le métier recherché.","err"); return; }
+
+  if(!trade){
+    toast("Précisez le métier recherché.", "err");
+    return;
+  }
+
   const statusEl = document.getElementById("gpsStatusSearch");
-  statusEl.textContent = "📡 Localisation en cours…"; statusEl.className="gps-status";
-  if(!navigator.geolocation){ statusEl.textContent="GPS non supporté par ce navigateur."; statusEl.className="gps-status err"; return; }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const clientPos = {lat:pos.coords.latitude, lng:pos.coords.longitude};
-    const u = currentUser(); u.gps = clientPos; saveDB(DB);
-    statusEl.textContent = "✅ Position détectée"; statusEl.className="gps-status ok";
-    showSearchResults(trade, clientPos);
-  }, err=>{
-    statusEl.textContent = "⚠️ Impossible d'obtenir la position ("+err.message+"). Utilisation d'une position de démonstration (Abidjan).";
-    statusEl.className="gps-status err";
-    const fallback = {lat:5.3364,lng:-4.0267};
-    const u = currentUser(); u.gps = fallback; saveDB(DB);
-    showSearchResults(trade, fallback);
-  }, {enableHighAccuracy:true, timeout:8000});
+  statusEl.textContent = "📡 Localisation en cours…";
+  statusEl.className = "gps-status";
+
+  if(!navigator.geolocation){
+    statusEl.textContent = "GPS non supporté par ce navigateur.";
+    statusEl.className = "gps-status err";
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async pos => {
+      const clientPos = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude
+      };
+
+      const u = currentUser();
+
+      if(u){
+        u.gps = clientPos;
+      }
+
+      statusEl.textContent = "✅ Position détectée";
+      statusEl.className = "gps-status ok";
+
+      await showSearchResults(trade, clientPos);
+    },
+    err => {
+      console.error("Erreur de géolocalisation :", err);
+
+      statusEl.textContent =
+        "⚠️ Position impossible à obtenir. Autorisez la localisation et réessayez.";
+      statusEl.className = "gps-status err";
+
+      toast("Votre position n'a pas pu être détectée.", "err");
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
+  );
 }
 async function showSearchResults(trade, clientPos){
   const wrap = document.getElementById("searchResults");
