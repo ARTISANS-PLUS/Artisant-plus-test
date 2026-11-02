@@ -1964,16 +1964,96 @@ async function submitRating(taskId){
   render();
 }
 
-function renderClientHistory(main, u){
-  const tasks = DB.tasks.filter(t=>t.clientId===u.id).sort((a,b)=>b.createdAt-a.createdAt);
-  main.innerHTML = `<div class="main-head"><h1>Historique de mes tâches</h1></div>
-    <table class="table"><thead><tr><th>Métier</th><th>Artisan</th><th>Statut</th><th>Prix</th><th>Date</th><th></th></tr></thead>
-    <tbody>${tasks.map(t=>{
-      const a = DB.users.find(x=>x.id===t.artisanId);
-      return `<tr><td>${t.trade}</td><td>${a.name}</td><td><span class="pill pill-muted">${statusLabel(t.status)}</span></td><td class="mono">${fmtMoney(t.price)}</td><td>${new Date(t.createdAt).toLocaleDateString('fr-FR')}</td><td><button class="btn btn-outline btn-sm" onclick="go('/client/task/${t.id}')">Voir</button></td></tr>`;
-    }).join("") || `<tr><td colspan="6" style="text-align:center;color:var(--muted);">Aucune tâche pour le moment.</td></tr>`}</tbody></table>`;
-}
+async function renderClientHistory(main, u){
+  main.innerHTML = `
+    <div class="main-head">
+      <h1>Historique de mes tâches</h1>
+    </div>
+    <p>Chargement de votre historique...</p>
+  `;
 
+  const { data: missions, error } = await window.supabase
+    .from("missions")
+    .select("*")
+    .eq("client_id", u.id)
+    .order("requested_at", { ascending: false });
+
+  if(error){
+    console.error("Erreur de récupération de l'historique :", error);
+    main.innerHTML = "<p>Impossible de charger votre historique.</p>";
+    return;
+  }
+
+  const statusMap = {
+    requested: "pending",
+    accepted: "accepted",
+    en_route: "enroute",
+    arrived: "arrived",
+    in_progress: "in_progress",
+    completed: "closed",
+    cancelled: "cancelled"
+  };
+
+  const tasks = await Promise.all((missions || []).map(async mission => {
+    const contact = await getMissionContact(mission.id);
+
+    return {
+      id: mission.id,
+      trade: mission.trade,
+      artisanName: contact?.full_name || "Artisan",
+      status: statusMap[mission.status] || mission.status,
+      price: mission.final_amount ?? mission.quoted_amount ?? 0,
+      date: mission.requested_at
+    };
+  }));
+
+  main.innerHTML = `
+    <div class="main-head">
+      <h1>Historique de mes tâches</h1>
+    </div>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Métier</th>
+          <th>Artisan</th>
+          <th>Statut</th>
+          <th>Prix</th>
+          <th>Date</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${tasks.map(t => `
+          <tr>
+            <td>${t.trade}</td>
+            <td>${t.artisanName}</td>
+            <td>
+              <span class="pill pill-muted">
+                ${statusLabel(t.status)}
+              </span>
+            </td>
+            <td class="mono">${fmtMoney(t.price)}</td>
+            <td>${new Date(t.date).toLocaleDateString("fr-FR")}</td>
+            <td>
+              <button class="btn btn-outline btn-sm"
+                onclick="go('/client/task/${t.id}')">
+                Voir
+              </button>
+            </td>
+          </tr>
+        `).join("") || `
+          <tr>
+            <td colspan="6" style="text-align:center;color:var(--muted);">
+              Aucune tâche pour le moment.
+            </td>
+          </tr>
+        `}
+      </tbody>
+    </table>
+  `;
+}
 function renderProfileView(main, u){
   const country = COUNTRIES[u.countryCode] || null;
   const subscription = u.subscription || {};
