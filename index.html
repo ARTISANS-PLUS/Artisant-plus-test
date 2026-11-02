@@ -2159,8 +2159,34 @@ function taskRowArtisan(t){
     </div>
   `;
 }
-function toggleAvailability(val){ const u=currentUser(); u.available=val; saveDB(DB); toast(val?"Vous êtes maintenant disponible.":"Vous êtes indisponible.", "ok"); }
+async function toggleAvailability(val){
+  const u = currentUser();
 
+  if(!u || !window.supabase){
+    toast("Session utilisateur introuvable.", "error");
+    return;
+  }
+
+  const { error } = await window.supabase
+    .from("artisan_profiles")
+    .update({ is_available: val })
+    .eq("user_id", u.id);
+
+  if(error){
+    console.error("Erreur de mise à jour de la disponibilité :", error);
+    toast("Impossible de modifier votre disponibilité.", "error");
+    return;
+  }
+
+  u.available = val;
+
+  toast(
+    val
+      ? "Vous êtes maintenant disponible."
+      : "Vous êtes indisponible.",
+    "ok"
+  );
+}
 async function renderArtisanRequests(main, u){
   main.innerHTML = `
     <div class="main-head"><h1>Demandes reçues</h1></div>
