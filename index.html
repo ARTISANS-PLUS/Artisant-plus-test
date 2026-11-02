@@ -1559,24 +1559,113 @@ async function getMissionContact(missionId){
 
   return data && data.length ? data[0] : null;
 }
-function renderClientTask(main, u, taskId){
-  const t = DB.tasks.find(x=>x.id===taskId);
-  if(!t){ main.innerHTML="<p>Tâche introuvable.</p>"; return; }
-  const artisan = DB.users.find(a=>a.id===t.artisanId);
+async function renderClientTask(main, u, taskId){
+  main.innerHTML = "<p>Chargement de la mission...</p>";
+
+  const { data: mission, error } = await window.supabase
+    .from("missions")
+    .select("*")
+    .eq("id", taskId)
+    .single();
+
+  if(error || !mission){
+    console.error("Erreur de récupération de la mission :", error);
+    main.innerHTML = "<p>Mission introuvable ou inaccessible.</p>";
+    return;
+  }
+
+  const [contact, artisanResult] = await Promise.all([
+    getMissionContact(taskId),
+    window.supabase
+      .from("public_artisan_profiles")
+      .select("id, is_verified, rating, rating_count, latitude, longitude")
+      .eq("id", mission.artisan_id)
+      .maybeSingle()
+  ]);
+
+  if(!contact){
+    main.innerHTML = "<p>Impossible de récupérer les informations de l'artisan.</p>";
+    return;
+  }
+
+  if(artisanResult.error){
+    console.error("Erreur de récupération du profil artisan :", artisanResult.error);
+  }
+
+  const artisan = artisanResult.data || {};
+
+  const statusMap = {
+    requested: "pending",
+    accepted: "accepted",
+    en_route: "enroute",
+    arrived: "arrived",
+    in_progress: "in_progress",
+    completed: "closed",
+    cancelled: "cancelled"
+  };
+
+  const t = {
+    id: mission.id,
+    trade: mission.trade,
+    status: statusMap[mission.status] || mission.status,
+    clientId: mission.client_id,
+    artisanId: mission.artisan_id,
+    price: mission.quoted_amount || 0,
+    clientGPS: (
+      mission.client_latitude !== null &&
+      mission.client_longitude !== null
+    ) ? {
+      lat: mission.client_latitude,
+      lng: mission.client_longitude
+    } : null,
+    artisanGPS: (
+      artisan.latitude !== null &&
+      artisan.longitude !== null
+    ) ? {
+      lat: artisan.latitude,
+      lng: artisan.longitude
+    } : null,
+    route: 0
+  };
+
+  const initials = (contact.full_name || "Artisan")
+    .split(" ")
+    .map(w => w[0])
+    .join("")
+    .slice(0, 2);
+
+  const dial = COUNTRIES[contact.country_code]?.dial || "";
+
   main.innerHTML = `
-    <div class="main-head"><h1>Suivi de mission — ${t.trade}</h1><span class="pill pill-ochre">${statusLabel(t.status)}</span></div>
+    <div class="main-head">
+      <h1>Suivi de mission — ${t.trade}</h1>
+      <span class="pill pill-ochre">${statusLabel(t.status)}</span>
+    </div>
     <div class="card">
       <div class="artisan-result" style="border:none; padding:0; margin-bottom:10px;">
-        <div class="avatar">${artisan.name.split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
-        <div class="info"><h4>${artisan.name} ${artisan.verified?'<span class="badge-verified">✔ Vérifié</span>':''}</h4><span class="stars">${starsHtml(artisan.rating)}</span></div>
-        <a class="btn btn-outline btn-sm" href="tel:${COUNTRIES[artisan.countryCode].dial}${artisan.phone}">📞 Appeler</a>
+        <div class="avatar">${initials}</div>
+        <div class="info">
+          <h4>
+            ${contact.full_name || "Artisan"}
+            ${artisan.is_verified ? '<span class="badge-verified">✔ Vérifié</span>' : ''}
+          </h4>
+          <span class="stars">${starsHtml(artisan.rating || 0)}</span>
+        </div>
+        ${contact.phone ? `<a class="btn btn-outline btn-sm" href="tel:${dial}${contact.phone}">📞 Appeler</a>` : ""}
       </div>
       ${statusTimelineHtml(t.status)}
       <div id="taskMap" class="task-track-map"></div>
       <div id="taskActionZone"></div>
     </div>
   `;
-  initTaskMap(t);
+
+  if(t.clientGPS){
+    initTaskMap(t);
+  } else {
+    document.getElementById("taskMap").innerHTML =
+      "<p>Position du client non disponible.</p>";
+  }
+
   renderTaskActionZone(t, u, "client");
 }
 function statusTimelineHtml(status){
