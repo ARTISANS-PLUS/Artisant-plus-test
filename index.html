@@ -1669,10 +1669,39 @@ async function renderClientTask(main, u, taskId){
   renderTaskActionZone(t, u, "client");
 }
 function statusTimelineHtml(status){
-  const steps=[["pending","Demande envoyée"],["accepted","Acceptée"],["enroute","En route"],["arrived","Arrivé"],["in_progress","Prestation"],["paid","Payé"],["closed","Clôturé"]];
-  const order = steps.map(s=>s[0]);
+  const steps = [
+    ["pending", "Demande envoyée"],
+    ["accepted", "Acceptée"],
+    ["enroute", "En route"],
+    ["arrived", "Arrivé"],
+    ["in_progress", "Prestation"],
+    ["closed", "Clôturée"]
+  ];
+
+  if(status === "cancelled"){
+    return `
+      <div class="status-timeline">
+        <div class="st now">
+          <div class="dot"></div>
+          Mission annulée ou refusée
+        </div>
+      </div>
+    `;
+  }
+
+  const order = steps.map(s => s[0]);
   const curIdx = order.indexOf(status);
-  return `<div class="status-timeline">${steps.map(([key,label],i)=>`<div class="st ${i<curIdx?'done':''} ${i===curIdx?'now':''}"><div class="dot"></div>${label}</div>`).join("")}</div>`;
+
+  return `
+    <div class="status-timeline">
+      ${steps.map(([key, label], i) => `
+        <div class="st ${i < curIdx ? 'done' : ''} ${i === curIdx ? 'now' : ''}">
+          <div class="dot"></div>
+          ${label}
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 let __taskMapInstance=null, __taskMarkerArtisan=null, __routeTimer=null;
 function initTaskMap(t){
