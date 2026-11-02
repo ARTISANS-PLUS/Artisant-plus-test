@@ -1026,7 +1026,10 @@ function selectPM(el, name){ document.querySelectorAll("#subPmGrid .pm-btn, #wal
 function selectPlanRadio(){}
 async function paySubscription(role, price3, priceY){
   const plan = document.querySelector('input[name="plan"]:checked').value;
-  const phone = document.getElementById("sub_phone").value.trim();
+ const phoneInput = document.getElementById("sub_phone");
+console.log("Champ téléphone :", phoneInput);
+console.log("Valeur téléphone :", phoneInput?.value);
+const phone = phoneInput?.value?.trim() || "";
 
   if(!__selectedPM){
     toast("Choisissez une méthode de paiement.","err");
