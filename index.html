@@ -2686,14 +2686,91 @@ function renderAdminUsers(main){
 function toggleBlockUser(id){
   const u = DB.users.find(x=>x.id===id); u.blocked = !u.blocked; saveDB(DB); toast("Statut mis à jour.","ok"); render();
 }
-function renderAdminTasks(main){
-  const tasks = DB.tasks.sort((a,b)=>b.createdAt-a.createdAt);
-  main.innerHTML = `<div class="main-head"><h1>Toutes les tâches</h1></div>
-    <table class="table"><thead><tr><th>Métier</th><th>Client</th><th>Artisan</th><th>Statut</th><th>Prix</th><th>Commission</th></tr></thead>
-    <tbody>${tasks.map(t=>{
-      const c = DB.users.find(x=>x.id===t.clientId), a = DB.users.find(x=>x.id===t.artisanId);
-      return `<tr><td>${t.trade}</td><td>${c?.name||'—'}</td><td>${a?.name||'—'}</td><td><span class="pill pill-muted">${statusLabel(t.status)}</span></td><td class="mono">${fmtMoney(t.price)}</td><td class="mono">${t.commission?fmtMoney(t.commission):'—'}</td></tr>`;
-    }).join("") || `<tr><td colspan="6" style="text-align:center;color:var(--muted);">Aucune tâche.</td></tr>`}</tbody></table>`;
+async function renderAdminTasks(main){
+  main.innerHTML = `
+    <div class="main-head"><h1>Toutes les tâches</h1></div>
+    <p>Chargement des missions...</p>
+  `;
+
+  const { data: tasks, error } = await window.supabase
+    .from("missions")
+    .select("*")
+    .order("requested_at", { ascending: false });
+
+  if(error){
+    console.error("Erreur de récupération des missions :", error);
+    main.innerHTML = "<p>Impossible de charger les missions.</p>";
+    return;
+  }
+
+  const { data: profiles, error: profilesError } = await window.supabase
+    .from("profiles")
+    .select("id, full_name");
+
+  if(profilesError){
+    console.error("Erreur de récupération des utilisateurs :", profilesError);
+  }
+
+  const users = profiles || [];
+
+  const getName = id =>
+    users.find(user => user.id === id)?.full_name || "—";
+
+  const statusMap = {
+    requested: "pending",
+    accepted: "accepted",
+    en_route: "enroute",
+    arrived: "arrived",
+    in_progress: "in_progress",
+    completed: "closed",
+    cancelled: "cancelled"
+  };
+
+  main.innerHTML = `
+    <div class="main-head"><h1>Toutes les tâches</h1></div>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Métier</th>
+          <th>Client</th>
+          <th>Artisan</th>
+          <th>Statut</th>
+          <th>Prix</th>
+          <th>Commission</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${(tasks || []).map(t => `
+          <tr>
+            <td>${t.trade}</td>
+            <td>${getName(t.client_id)}</td>
+            <td>${getName(t.artisan_id)}</td>
+            <td>
+              <span class="pill pill-muted">
+                ${statusLabel(statusMap[t.status] || t.status)}
+              </span>
+            </td>
+            <td class="mono">
+              ${fmtMoney(t.final_amount ?? t.quoted_amount ?? 0)}
+            </td>
+            <td class="mono">
+              ${t.platform_commission != null
+                ? fmtMoney(t.platform_commission)
+                : "—"}
+            </td>
+          </tr>
+        `).join("") || `
+          <tr>
+            <td colspan="6" style="text-align:center;color:var(--muted);">
+              Aucune tâche.
+            </td>
+          </tr>
+        `}
+      </tbody>
+    </table>
+  `;
 }
 </script>
 </body>
