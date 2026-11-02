@@ -2641,33 +2641,121 @@ async function saveArtisanProfile(){
 }
 
 /* ---------------- ADMIN VIEWS ---------------- */
-function renderAdminHome(main){
-  const clients = DB.users.filter(u=>u.role==="client");
-  const artisans = DB.users.filter(u=>u.role==="artisan");
-  const subsRevenue = DB.users.reduce((sum,u)=>{
-    if(u.role==="client" && u.subscription.status==="active") sum += u.subscription.plan==="essai"?1500:7000;
-    if(u.role==="artisan" && u.subscription.status==="active") sum += u.subscription.plan==="essai"?2000:10000;
-    return sum;
-  },0);
-  const commissionRevenue = DB.tasks.reduce((s,t)=>s+(t.commission||0),0);
-  const activeTasks = DB.tasks.filter(t=>!["closed","cancelled"].includes(t.status)).length;
+async function renderAdminHome(main){
   main.innerHTML = `
-    <div class="main-head"><h1>Vue d'ensemble — Administration</h1></div>
+    <div class="main-head">
+      <h1>Vue d'ensemble — Administration</h1>
+    </div>
+    <p>Chargement des statistiques...</p>
+  `;
+
+  const [
+    profilesResult,
+    subscriptionsResult,
+    missionsResult,
+    artisanProfilesResult
+  ] = await Promise.all([
+    window.supabase.from("profiles").select("*"),
+    window.supabase.from("subscriptions").select("*").eq("status", "active"),
+    window.supabase.from("missions").select("*"),
+    window.supabase.from("artisan_profiles").select("*")
+  ]);
+
+  const results = [
+    profilesResult,
+    subscriptionsResult,
+    missionsResult,
+    artisanProfilesResult
+  ];
+
+  const failed = results.find(result => result.error);
+
+  if(failed){
+    console.error("Erreur de chargement des statistiques :", failed.error);
+    main.innerHTML = "<p>Impossible de charger les statistiques d'administration.</p>";
+    return;
+  }
+
+  const users = profilesResult.data || [];
+  const subscriptions = subscriptionsResult.data || [];
+  const tasks = missionsResult.data || [];
+  const artisanProfiles = artisanProfilesResult.data || [];
+
+  const clients = users.filter(u => u.role === "client");
+  const artisans = users.filter(u => u.role === "artisan");
+
+  const subsRevenue = subscriptions.reduce((sum, sub) => {
+    const user = users.find(u => u.id === sub.user_id);
+    if(!user) return sum;
+
+    if(user.role === "client"){
+      return sum + (sub.plan_code === "essai" ? 1500 : 7000);
+    }
+
+    if(user.role === "artisan"){
+      return sum + (sub.plan_code === "essai" ? 2000 : 10000);
+    }
+
+    return sum;
+  }, 0);
+
+  const commissionRevenue = tasks.reduce(
+    (sum, task) => sum + (task.platform_commission || 0),
+    0
+  );
+
+  const activeTasks = tasks.filter(
+    t => !["completed", "cancelled"].includes(t.status)
+  ).length;
+
+  const availableArtisans = artisanProfiles.filter(
+    a => a.is_available
+  ).length;
+
+  const verifiedArtisans = artisanProfiles.filter(
+    a => a.is_verified
+  ).length;
+
+  main.innerHTML = `
+    <div class="main-head">
+      <h1>Vue d'ensemble — Administration</h1>
+    </div>
+
     <div class="stat-row">
       <div class="stat-box"><b>${clients.length}</b><span>Clients inscrits</span></div>
       <div class="stat-box"><b>${artisans.length}</b><span>Artisans inscrits</span></div>
       <div class="stat-box"><b>${fmtMoney(subsRevenue)}</b><span>Revenus abonnements (actifs)</span></div>
-      <div class="stat-box"><b>${fmtMoney(commissionRevenue)}</b><span>Revenus commissions</span></div>
+      <div class="stat-box"><b>${fmtMoney(commissionRevenue)}</b><span>Commissions enregistrées</span></div>
     </div>
+
     <div class="stat-row">
       <div class="stat-box"><b>${activeTasks}</b><span>Tâches en cours</span></div>
-      <div class="stat-box"><b>${DB.tasks.length}</b><span>Tâches totales</span></div>
-      <div class="stat-box"><b>${artisans.filter(a=>a.available).length}</b><span>Artisans disponibles</span></div>
-      <div class="stat-box"><b>${artisans.filter(a=>a.verified).length}</b><span>Artisans vérifiés</span></div>
+      <div class="stat-box"><b>${tasks.length}</b><span>Tâches totales</span></div>
+      <div class="stat-box"><b>${availableArtisans}</b><span>Artisans disponibles</span></div>
+      <div class="stat-box"><b>${verifiedArtisans}</b><span>Artisans vérifiés</span></div>
     </div>
+
     <h3>Répartition par pays</h3>
-    <table class="table"><thead><tr><th>Pays</th><th>Clients</th><th>Artisans</th></tr></thead>
-    <tbody>${Object.entries(COUNTRIES).map(([k,c])=>`<tr><td>${c.flag} ${c.name}</td><td>${clients.filter(u=>u.countryCode===k).length}</td><td>${artisans.filter(u=>u.countryCode===k).length}</td></tr>`).join("")}</tbody></table>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Pays</th>
+          <th>Clients</th>
+          <th>Artisans</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${Object.entries(COUNTRIES).map(([key, country]) => `
+          <tr>
+            <td>${country.flag} ${country.name}</td>
+            <td>${clients.filter(u => u.country_code === key).length}</td>
+            <td>${artisans.filter(u => u.country_code === key).length}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
   `;
 }
 function renderAdminUsers(main){
