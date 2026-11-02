@@ -1272,18 +1272,57 @@ function buildSidebar(u, path){
     <div class="side-foot">Connecté : ${u.name}<br>${u.role.toUpperCase()}</div>
   `;
 }
-function toggleNotifDropdown(){
-  let dd = document.getElementById("notifDropdown");
-  if(!dd){
-    // sidebar variant doesn't have dropdown container; create simple modal instead
-    const notifs = myNotifs();
-    openModal(`<button class="modal-close" onclick="closeModal()">✕</button><h3>Notifications</h3>` +
-      (notifs.length? notifs.map(n=>`<div class="dropdown item"><b>${n.title}</b>${n.body}<div style="font-size:.7rem;color:var(--muted);margin-top:4px;">${new Date(n.createdAt).toLocaleString('fr-FR')}</div></div>`).join("") : `<p>Aucune notification pour le moment.</p>`)
-    );
-    DB.notifications.forEach(n=>{ if(n.userId===currentUser().id) n.read=true; }); saveDB(DB);
+async function toggleNotifDropdown(){
+  const u = currentUser();
+
+  if(!u || !window.supabase) return;
+
+  const { data: notifs, error } = await window.supabase
+    .from("notifications")
+    .select("id, title, message, read_at, created_at")
+    .eq("user_id", u.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if(error){
+    console.error("Erreur de récupération des notifications :", error);
+    toast("Impossible de charger les notifications.", "error");
+    return;
+  }
+
+  const content = (notifs || []).length
+    ? notifs.map(n => `
+        <div class="dropdown item">
+          <b>${n.title}</b>
+          <div>${n.message || ""}</div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:4px;">
+            ${new Date(n.created_at).toLocaleString("fr-FR")}
+          </div>
+        </div>
+      `).join("")
+    : `<p>Aucune notification pour le moment.</p>`;
+
+  openModal(
+    `<button class="modal-close" onclick="closeModal()">✕</button>
+     <h3>Notifications</h3>` + content
+  );
+
+  const unreadIds = (notifs || [])
+    .filter(n => !n.read_at)
+    .map(n => n.id);
+
+  if(unreadIds.length){
+    const { error: updateError } = await window.supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .in("id", unreadIds)
+      .eq("user_id", u.id);
+
+    if(updateError){
+      console.error("Erreur de mise à jour des notifications :", updateError);
+    }
   }
 }
-
 /* ---------------- CLIENT VIEWS ---------------- */
 async function renderClientHome(main, u){
   main.innerHTML = "<p>Chargement de votre tableau de bord...</p>";
