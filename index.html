@@ -1896,17 +1896,19 @@ async function startPrestation(taskId){
   render();
 }
 function openPayTaskModal(taskId){
-  const t = DB.tasks.find(x=>x.id===taskId);
-  const u = currentUser();
   openModal(`
     <button class="modal-close" onclick="closeModal()">✕</button>
     <h3>Paiement de la prestation</h3>
-    <div class="wallet-box" style="margin-top:10px;">
-      <span style="font-size:.78rem;opacity:.8;">Solde disponible</span><div class="bal">${fmtMoney(u.wallet.balance)}</div>
+
+    <div class="empty-state">
+      <div class="icon-badge">💳</div>
+      <p>Le paiement en ligne n'est pas encore disponible.</p>
+      <p>Cette fonctionnalité sera activée après l'intégration du prestataire de paiement.</p>
     </div>
-    <p>Montant à payer : <b class="mono">${fmtMoney(t.price)}</b> (commission plateforme incluse pour l'artisan)</p>
-    ${u.wallet.balance < t.price ? `<p style="color:var(--danger);">Solde insuffisant. Rechargez votre portefeuille avant de payer.</p><button class="btn btn-outline btn-block" onclick="closeModal(); openTopupModal();">Recharger mon portefeuille</button>` :
-    `<button class="btn btn-emerald btn-block" onclick="payTask('${taskId}')">Confirmer le paiement</button>`}
+
+    <button class="btn btn-dark btn-block" onclick="closeModal()">
+      Compris
+    </button>
   `);
 }
 function payTask(taskId){
