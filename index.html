@@ -2057,10 +2057,23 @@ async function acceptTask(taskId){
   toast("Mission acceptée.", "ok");
   render();
 }
-function declineTask(taskId){
-  const t = DB.tasks.find(x=>x.id===taskId); t.status="cancelled"; saveDB(DB);
-  addNotif(t.clientId, "Demande refusée", "L'artisan n'est pas disponible pour cette mission. Recherchez un autre artisan.");
-  toast("Mission refusée.",""); render();
+async function declineTask(taskId){
+  const { data, error } = await window.supabase.rpc(
+    "update_mission_status",
+    {
+      p_mission_id: taskId,
+      p_new_status: "cancelled"
+    }
+  );
+
+  if(error){
+    console.error("Erreur lors du refus :", error);
+    toast("Impossible de refuser cette mission.", "err");
+    return;
+  }
+
+  toast("Mission refusée.", "ok");
+  render();
 }
 function markArrived(taskId){
   const t = DB.tasks.find(x=>x.id===taskId); t.status="arrived"; t.route=100; saveDB(DB);
