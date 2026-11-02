@@ -2039,10 +2039,23 @@ function renderArtisanRequests(main, u){
   main.innerHTML = `<div class="main-head"><h1>Demandes reçues</h1></div>
     ${tasks.length? tasks.map(t=>taskRowArtisan(t)).join("") : `<div class="empty-state"><div class="icon-badge">📭</div>Aucune demande active.</div>`}`;
 }
-function acceptTask(taskId){
-  const t = DB.tasks.find(x=>x.id===taskId); t.status="accepted"; saveDB(DB);
-  addNotif(t.clientId, "Demande acceptée !", "L'artisan a accepté votre demande et se met en route.");
-  toast("Mission acceptée.","ok"); render();
+async function acceptTask(taskId){
+  const { data, error } = await window.supabase.rpc(
+    "update_mission_status",
+    {
+      p_mission_id: taskId,
+      p_new_status: "accepted"
+    }
+  );
+
+  if(error){
+    console.error("Erreur lors de l'acceptation :", error);
+    toast("Impossible d'accepter cette mission.", "err");
+    return;
+  }
+
+  toast("Mission acceptée.", "ok");
+  render();
 }
 function declineTask(taskId){
   const t = DB.tasks.find(x=>x.id===taskId); t.status="cancelled"; saveDB(DB);
