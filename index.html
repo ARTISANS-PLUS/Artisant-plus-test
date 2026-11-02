@@ -479,14 +479,7 @@ const TRADES = [
 const FLAT_TRADES = TRADES.flatMap(c=>c.list);
 
 /* ---------- STOCKAGE (simulateur de backend) ---------- */
-const DB_KEY = "artisansPlusDB_v1";
-function loadDB(){
-  let raw = localStorage.getItem(DB_KEY);
-  if(!raw){
-    const db = seedDB();
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-    return db;
-  }
+
   return JSON.parse(raw);
 }
 function saveDB(db){ localStorage.setItem(DB_KEY, JSON.stringify(db)); }
@@ -536,11 +529,8 @@ function seedDB(){
   return {users:[admin, demoClient, ...demoArtisans], tasks:[], notifications:[], referrals:{}};
 }
 
-let DB = loadDB();
-let SESSION = JSON.parse(localStorage.getItem("artisansPlusSession")||"null");
 let AUTH_USER = null;
 let AUTH_READY = false;
-function persistSession(){ localStorage.setItem("artisansPlusSession", JSON.stringify(SESSION)); }
 function currentUser(){
   return AUTH_USER;
 }
