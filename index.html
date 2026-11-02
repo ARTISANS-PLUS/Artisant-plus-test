@@ -481,7 +481,12 @@ const FLAT_TRADES = TRADES.flatMap(c=>c.list);
 /* ---------- STOCKAGE (simulateur de backend) ---------- */
 
 function uid(prefix){ return prefix+"_"+Math.random().toString(36).slice(2,9); }
+let AUTH_USER = null;
+let AUTH_READY = false;
 
+function currentUser(){
+  return AUTH_USER;
+}
 async function loadUserProfile(userId){
   const { data: profile, error } = await window.supabase
     .from("profiles")
