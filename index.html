@@ -1368,10 +1368,14 @@ async function renderClientHome(main, u){
   `;
 }
 function taskRowClient(t){
-  const artisan = DB.users.find(a=>a.id===t.artisanId);
+  const artisanName = t.artisanName || "Artisan";
+
   return `<div class="artisan-result">
-    <div class="avatar">${artisan.name.split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
-    <div class="info"><h4>${artisan.name} — ${t.trade}</h4><span class="pill pill-ochre">${statusLabel(t.status)}</span></div>
+    <div class="avatar">${artisanName.split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
+    <div class="info">
+      <h4>${artisanName} — ${t.trade}</h4>
+      <span class="pill pill-ochre">${statusLabel(t.status)}</span>
+    </div>
     <button class="btn btn-dark btn-sm" onclick="go('/client/task/${t.id}')">Suivre</button>
   </div>`;
 }
