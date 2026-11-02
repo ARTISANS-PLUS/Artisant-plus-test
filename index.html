@@ -1912,17 +1912,12 @@ function openPayTaskModal(taskId){
   `);
 }
 function payTask(taskId){
-  const t = DB.tasks.find(x=>x.id===taskId);
-  const client = currentUser();
-  const artisan = DB.users.find(a=>a.id===t.artisanId);
-  const commission = Math.round(t.price*0.10);
-  client.wallet.balance -= t.price;
-  artisan.wallet.balance += (t.price - commission);
-  t.status="paid"; t.commission=commission;
-  saveDB(DB); closeModal();
-  addNotif(artisan.id, "Paiement reçu", `Vous avez reçu ${fmtMoney(t.price-commission)} pour la mission « ${t.trade} » (commission plateforme : ${fmtMoney(commission)}).`);
-  toast("Paiement effectué avec succès !","ok");
-  render();
+  toast(
+    "Le paiement en ligne n'est pas encore disponible.",
+    "error"
+  );
+
+  closeModal();
 }
 function openRatingModal(taskId){
   window.__ratingValue = 5;
