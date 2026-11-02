@@ -1769,23 +1769,19 @@ function initTaskMap(t){
   if(t.status==="enroute" || t.status==="accepted"){ startRouteSimulation(t); }
 }
 function startRouteSimulation(t){
-  if(__routeTimer) clearInterval(__routeTimer);
-  const clientPos = t.clientGPS, artPos = t.artisanGPS;
-  __routeTimer = setInterval(()=>{
-    const cur = DB.tasks.find(x=>x.id===t.id);
-    if(!cur || !["accepted","enroute"].includes(cur.status)){ clearInterval(__routeTimer); return; }
-    cur.route = Math.min(100, (cur.route||0) + 8);
-    const lat = artPos.lat + (clientPos.lat-artPos.lat)*(cur.route/100);
-    const lng = artPos.lng + (clientPos.lng-artPos.lng)*(cur.route/100);
-    if(__taskMarkerArtisan) __taskMarkerArtisan.setLatLng([lat,lng]);
-    cur.status = "enroute";
-    const bar = document.getElementById("routeProgressBar");
-    if(bar) bar.style.width = cur.route+"%";
-    const eta = document.getElementById("routeEta");
-    if(eta) eta.textContent = Math.max(0, Math.round((100-cur.route)/8*3)) + " min restantes (estimation)";
-    saveDB(DB);
-    if(cur.route>=100){ clearInterval(__routeTimer); }
-  }, 1200);
+  if(__routeTimer){
+    clearInterval(__routeTimer);
+    __routeTimer = null;
+  }
+
+  const progressBar = document.getElementById("routeProgressBar");
+  const eta = document.getElementById("routeEta");
+
+  if(progressBar) progressBar.style.width = "0%";
+
+  if(eta){
+    eta.textContent = "Suivi du déplacement en attente de la géolocalisation réelle.";
+  }
 }
 function renderTaskActionZone(t, u, viewer){
   const zone = document.getElementById("taskActionZone");
