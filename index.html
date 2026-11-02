@@ -2401,11 +2401,51 @@ function renderArtisanProfile(main, u){
       <button class="btn btn-dark btn-sm" onclick="saveArtisanProfile()">Enregistrer les modifications</button>
     </div>`;
 }
-function saveArtisanProfile(){
-  const trades = Array.from(document.querySelectorAll("#editTradeGrid input:checked")).map(i=>i.value);
-  const price = parseFloat(document.getElementById("editPrice").value);
-  const u = currentUser(); u.trades=trades; u.minPrice=price; saveDB(DB);
-  toast("Profil mis à jour.","ok"); render();
+async function saveArtisanProfile(){
+  const trades = Array.from(
+    document.querySelectorAll("#editTradeGrid input:checked")
+  ).map(i => i.value);
+
+  const price = parseFloat(
+    document.getElementById("editPrice").value
+  );
+
+  const u = currentUser();
+
+  if(!u || !window.supabase){
+    toast("Session utilisateur introuvable.", "error");
+    return;
+  }
+
+  if(!trades.length){
+    toast("Sélectionnez au moins un métier.", "error");
+    return;
+  }
+
+  if(!Number.isFinite(price) || price < 0){
+    toast("Veuillez saisir un prix minimum valide.", "error");
+    return;
+  }
+
+  const { error } = await window.supabase
+    .from("artisan_profiles")
+    .update({
+      trades: trades,
+      min_price: Math.round(price)
+    })
+    .eq("user_id", u.id);
+
+  if(error){
+    console.error("Erreur de mise à jour du profil :", error);
+    toast("Impossible de mettre à jour votre profil.", "error");
+    return;
+  }
+
+  u.trades = trades;
+  u.minPrice = Math.round(price);
+
+  toast("Profil mis à jour.", "ok");
+  render();
 }
 
 /* ---------------- ADMIN VIEWS ---------------- */
