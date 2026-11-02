@@ -2397,7 +2397,20 @@ function renderArtisanProfile(main, u){
     <h3 style="margin-top:26px;">Mes services</h3>
     <div class="card">
       <div class="trade-select-grid" id="editTradeGrid">${FLAT_TRADES.map(t=>`<label><input type="checkbox" value="${t}" ${u.trades.includes(t)?'checked':''}> ${t}</label>`).join("")}</div>
-      <div class="field" style="margin-top:14px;"><label>Prix minimum du service (frais de retrait inclus)</label><input id="editPrice" type="number" value="${u.minPrice}"></div>
+      <div class="field" style="margin-top:14px;">
+  <label>Prix minimum du service (frais de retrait inclus)</label>
+  <input id="editPrice" type="number" value="${u.minPrice}">
+</div>
+
+<div class="field" style="margin-top:14px;">
+  <label>Ville</label>
+  <input id="editCity" type="text" value="${u.city || ""}" placeholder="Votre ville">
+</div>
+
+<div class="field" style="margin-top:14px;">
+  <label>Biographie</label>
+  <textarea id="editBio" rows="4" placeholder="Présentez votre expérience et vos compétences">${u.bio || ""}</textarea>
+</div>
       <button class="btn btn-dark btn-sm" onclick="saveArtisanProfile()">Enregistrer les modifications</button>
     </div>`;
 }
