@@ -695,11 +695,7 @@ function starsHtml(rating){
   let s=""; for(let i=1;i<=5;i++) s += i<=full ? "★" : "☆";
   return s;
 }
-function addNotif(userId, title, body){
-  DB.notifications.unshift({id:uid("ntf"), userId, title, body, read:false, createdAt:Date.now()});
-  saveDB(DB);
-}
-function myNotifs(){ return DB.notifications.filter(n=>n.userId===currentUser().id).slice(0,20); }
+
 function scrollToId(id){ const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth'}); }
 
 /* ---------- ROUTING ---------- */
