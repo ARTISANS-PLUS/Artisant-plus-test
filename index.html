@@ -2854,8 +2854,34 @@ async function renderAdminUsers(main){
     </table>
   `;
 }
-function toggleBlockUser(id){
-  const u = DB.users.find(x=>x.id===id); u.blocked = !u.blocked; saveDB(DB); toast("Statut mis à jour.","ok"); render();
+async function toggleBlockUser(id){
+  const { data: user, error: fetchError } = await window.supabase
+    .from("profiles")
+    .select("is_suspended")
+    .eq("id", id)
+    .single();
+
+  if(fetchError || !user){
+    console.error("Erreur de récupération de l'utilisateur :", fetchError);
+    toast("Impossible de récupérer cet utilisateur.", "error");
+    return;
+  }
+
+  const newStatus = !user.is_suspended;
+
+  const { error } = await window.supabase
+    .from("profiles")
+    .update({ is_suspended: newStatus })
+    .eq("id", id);
+
+  if(error){
+    console.error("Erreur de mise à jour du statut :", error);
+    toast("Impossible de modifier le statut.", "error");
+    return;
+  }
+
+  toast(newStatus ? "Utilisateur suspendu." : "Utilisateur réactivé.", "ok");
+  render();
 }
 async function renderAdminTasks(main){
   main.innerHTML = `
