@@ -2423,6 +2423,9 @@ async function saveArtisanProfile(){
     document.getElementById("editPrice").value
   );
 
+  const city = document.getElementById("editCity").value.trim();
+  const bio = document.getElementById("editBio").value.trim();
+
   const u = currentUser();
 
   if(!u || !window.supabase){
@@ -2444,7 +2447,9 @@ async function saveArtisanProfile(){
     .from("artisan_profiles")
     .update({
       trades: trades,
-      min_price: Math.round(price)
+      min_price: Math.round(price),
+      city: city || null,
+      bio: bio
     })
     .eq("user_id", u.id);
 
@@ -2456,6 +2461,8 @@ async function saveArtisanProfile(){
 
   u.trades = trades;
   u.minPrice = Math.round(price);
+  u.city = city;
+  u.bio = bio;
 
   toast("Profil mis à jour.", "ok");
   render();
