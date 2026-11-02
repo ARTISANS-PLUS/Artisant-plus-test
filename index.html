@@ -1001,8 +1001,7 @@ function openSubscriptionModal(role){
   const price3 = role==="client" ? 1500 : 2000;
   const priceY = role==="client" ? 7000 : 10000;
   openModal(`
-    <button class="modal-close" onclick="closeModal(); if(!currentUser().subscription.status || currentUser().subscription.status==='pending'){ toast('Un abonnement actif est requis pour utiliser Artisans+.','err'); }">✕</button>
-    <h3>Choisissez votre abonnement</h3>
+   <button class="modal-close" onclick="if(role==='client'){closeModal();}else{toast('Un abonnement actif est nécessaire pour accéder à la plateforme.','err');}">✕</button>
     <p>Compte ${role==='client'?'Client':'Artisan'} — activez votre accès à la plateforme.</p>
     <div class="field">
       <label style="display:flex; gap:10px; align-items:center; border:2px solid var(--line); border-radius:10px; padding:12px; cursor:pointer;" onclick="selectPlanRadio(this)">
