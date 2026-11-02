@@ -2144,9 +2144,9 @@ function captureArtisanGps(){
     window.__obGps = {lat:pos.coords.latitude, lng:pos.coords.longitude};
     statusEl.textContent="✅ Position enregistrée ("+pos.coords.latitude.toFixed(4)+", "+pos.coords.longitude.toFixed(4)+")";
     statusEl.className="gps-status ok";
-  }, err=>{
-    window.__obGps = {lat:6.1319,lng:1.2228};
-    statusEl.textContent="⚠️ Position par défaut utilisée (démo). "+err.message;
+ }, err=>{
+    window.__obGps = null;
+    statusEl.textContent="⚠️ Impossible de récupérer votre position réelle. Vérifiez les autorisations GPS de votre navigateur.";
     statusEl.className="gps-status err";
   });
 }
