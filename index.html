@@ -1183,11 +1183,6 @@ function renderAppShell(path, params){
 }
 
 function buildSidebar(u, path){
-  const bell = `
-    <div class="bell-wrap" style="margin-left:auto;">
-      <button class="side-link" style="width:auto;" onclick="toggleNotifDropdown()">🔔 Notifications ${myNotifs().filter(n=>!n.read).length?('<span class=\"bell-dot\"></span>'):''}</button>
-      <div class="dropdown hidden" id="notifDropdown"></div>
-    </div>`;
   let links = "";
   if(u.role==="client"){
     links = [
