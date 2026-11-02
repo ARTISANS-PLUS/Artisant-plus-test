@@ -1164,6 +1164,15 @@ function renderAppShell(path, params){
     if(params.get("onboarding") || !u.trades || u.trades.length===0 || !u.gps){
       return renderArtisanOnboarding(main, u);
     }if(u.subscription?.status!=="active"){
+  main.innerHTML = `
+    <div style="max-width:600px;margin:50px auto;text-align:center;padding:25px;">
+      <h2>Abonnement requis</h2>
+      <p>Votre profil est enregistré, mais vous devez activer un abonnement pour accéder à votre espace artisan.</p>
+      <button class="btn btn-primary" onclick="openSubscriptionModal('artisan')">
+        Choisir mon abonnement
+      </button>
+    </div>
+  `;
   openSubscriptionModal("artisan");
   return;
 }
