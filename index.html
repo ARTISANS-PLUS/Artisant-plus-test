@@ -482,7 +482,6 @@ const FLAT_TRADES = TRADES.flatMap(c=>c.list);
 
   return JSON.parse(raw);
 }
-function saveDB(db){ localStorage.setItem(DB_KEY, JSON.stringify(db)); }
 function uid(prefix){ return prefix+"_"+Math.random().toString(36).slice(2,9); }
 
 function seedDB(){
