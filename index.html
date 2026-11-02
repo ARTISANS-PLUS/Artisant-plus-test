@@ -480,59 +480,8 @@ const FLAT_TRADES = TRADES.flatMap(c=>c.list);
 
 /* ---------- STOCKAGE (simulateur de backend) ---------- */
 
-  return JSON.parse(raw);
 }
 function uid(prefix){ return prefix+"_"+Math.random().toString(36).slice(2,9); }
-
-function seedDB(){
-  const now = Date.now();
-  const admin = {
-    id:"admin_1", role:"admin", name:"Administrateur Artisans+",
-    email:"admin@artisansplus.africa", password:"Admin@2026",
-    createdAt:now
-  };
-  // Quelques artisans de démonstration pour tester le matching GPS sans multi-appareils
-  const demoArtisans = [
-    {id:uid("art"), role:"artisan", name:"Kossi Mensah", email:"kossi.menuisier@demo.tg", password:"demo1234",
-     phone:"90112233", countryCode:"TG", trades:["Menuisier bois","Ébéniste"], minPrice:5000,
-     gps:{lat:6.1319,lng:1.2228}, available:true, rating:4.8, ratingsCount:34, verified:true,
-     subscription:{plan:"annuel", status:"active", end: now+300*86400000}, wallet:{balance:42500}, createdAt: now-9000000},
-    {id:uid("art"), role:"artisan", name:"Awa Traoré", email:"awa.electricienne@demo.ci", password:"demo1234",
-     phone:"0701020304", countryCode:"CI", trades:["Électricien bâtiment","Électronicien"], minPrice:6000,
-     gps:{lat:5.3599,lng:-4.0083}, available:true, rating:4.6, ratingsCount:21, verified:true,
-     subscription:{plan:"annuel", status:"active", end: now+200*86400000}, wallet:{balance:18000}, createdAt: now-8000000},
-    {id:uid("art"), role:"artisan", name:"Moussa Diallo", email:"moussa.plombier@demo.sn", password:"demo1234",
-     phone:"771234567", countryCode:"SN", trades:["Plombier","Chauffagiste"], minPrice:4500,
-     gps:{lat:14.7167,lng:-17.4677}, available:true, rating:4.9, ratingsCount:58, verified:true,
-     subscription:{plan:"essai", status:"active", end: now+60*86400000}, wallet:{balance:96000}, createdAt: now-7000000},
-    {id:uid("art"), role:"artisan", name:"Jean-Paul Nzeyimana", email:"jp.frigoriste@demo.rw", password:"demo1234",
-     phone:"788123456", countryCode:"RW", trades:["Frigoriste","Climaticien"], minPrice:7000,
-     gps:{lat:-1.9441,lng:30.0619}, available:true, rating:4.5, ratingsCount:12, verified:false,
-     subscription:{plan:"essai", status:"active", end: now+45*86400000}, wallet:{balance:5000}, createdAt: now-6000000},
-    {id:uid("art"), role:"artisan", name:"Fatou Ouédraogo", email:"fatou.couturiere@demo.bf", password:"demo1234",
-     phone:"70112233", countryCode:"BF", trades:["Tailleur / Couturier","Brodeur"], minPrice:3000,
-     gps:{lat:12.3714,lng:-1.5197}, available:true, rating:4.7, ratingsCount:40, verified:true,
-     subscription:{plan:"annuel", status:"active", end: now+150*86400000}, wallet:{balance:23000}, createdAt: now-5000000},
-    {id:uid("art"), role:"artisan", name:"Ibrahim Coulibaly", email:"ibrahim.macon@demo.ml", password:"demo1234",
-     phone:"76112233", countryCode:"ML", trades:["Maçon","Carreleur"], minPrice:8000,
-     gps:{lat:12.6392,lng:-8.0029}, available:false, rating:4.3, ratingsCount:9, verified:false,
-     subscription:{plan:"essai", status:"active", end: now+80*86400000}, wallet:{balance:1200}, createdAt: now-4000000},
-    {id:uid("art"), role:"artisan", name:"Yao Kouassi", email:"yao.frigoriste@demo.ci", password:"demo1234",
-     phone:"0709998877", countryCode:"CI", trades:["Frigoriste","Climaticien","Électricien bâtiment"], minPrice:6500,
-     gps:{lat:5.345,lng:-4.024}, available:true, rating:4.85, ratingsCount:66, verified:true,
-     subscription:{plan:"annuel", status:"active", end: now+320*86400000}, wallet:{balance:73000}, createdAt: now-3000000}
-  ];
-  const demoClient = {id:uid("cli"), role:"client", name:"Client Démo", email:"client.demo@artisansplus.africa", password:"demo1234",
-    phone:"90000000", countryCode:"CI", gps:{lat:5.3364,lng:-4.0267},
-    subscription:{plan:"essai", status:"active", end: now+70*86400000}, wallet:{balance:15000}, favorites:[], createdAt: now-2000000};
-  return {users:[admin, demoClient, ...demoArtisans], tasks:[], notifications:[], referrals:{}};
-}
-
-let AUTH_USER = null;
-let AUTH_READY = false;
-function currentUser(){
-  return AUTH_USER;
-}
 
 async function loadUserProfile(userId){
   const { data: profile, error } = await window.supabase
