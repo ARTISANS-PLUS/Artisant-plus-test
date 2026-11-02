@@ -2075,10 +2075,23 @@ async function declineTask(taskId){
   toast("Mission refusée.", "ok");
   render();
 }
-function markArrived(taskId){
-  const t = DB.tasks.find(x=>x.id===taskId); t.status="arrived"; t.route=100; saveDB(DB);
-  addNotif(t.clientId, "Votre artisan est arrivé !", "Merci de sortir à la devanture pour l'accueillir.");
-  toast("Client notifié de votre arrivée.","ok"); render();
+async function markArrived(taskId){
+  const { error } = await window.supabase.rpc(
+    "update_mission_status",
+    {
+      p_mission_id: taskId,
+      p_new_status: "arrived"
+    }
+  );
+
+  if(error){
+    console.error("Erreur lors de la notification d'arrivée :", error);
+    toast("Impossible de notifier votre arrivée.", "err");
+    return;
+  }
+
+  toast("Votre arrivée a été signalée au client.", "ok");
+  render();
 }
 async function renderArtisanTask(main, u, taskId){
   main.innerHTML = "<p>Chargement de la mission...</p>";
