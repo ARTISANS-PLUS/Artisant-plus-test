@@ -579,16 +579,15 @@ async function loadUserProfile(userId){
       console.error("Erreur de récupération du profil artisan :", artisanError);
     }
 
-    if(artisanProfile){
-      user.trades = artisanProfile.trades;
-      user.bio = artisanProfile.bio;
-      user.minPrice = artisanProfile.min_price;
-      user.available = artisanProfile.is_available;
-      user.verified = artisanProfile.is_verified;
-      user.rating = artisanProfile.rating;
-      user.ratingsCount = artisanProfile.rating_count;
-    }
-  }
+if(artisanProfile){
+  user.trades = artisanProfile.trades;
+  user.bio = artisanProfile.bio;
+  user.minPrice = artisanProfile.min_price;
+  user.available = artisanProfile.is_available;
+  user.verified = artisanProfile.is_verified;
+  user.rating = artisanProfile.rating;
+  user.ratingsCount = artisanProfile.rating_count;
+}
   const { data: subscription, error: subscriptionError } = await window.supabase
     .from("subscriptions")
     .select("*")
