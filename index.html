@@ -2158,19 +2158,72 @@ function captureArtisanGps(){
     statusEl.className="gps-status err";
   });
 }
-function completeOnboarding(){
+async function completeOnboarding(){
   const country = document.getElementById("ob_country").value;
   const price = parseFloat(document.getElementById("ob_price").value);
-  const trades = Array.from(document.querySelectorAll("#tradeSelectGrid input:checked")).map(i=>i.value);
-  if(!window.__obGps){ toast("Merci d'enregistrer votre position GPS.","err"); return; }
-  if(!trades.length){ toast("Sélectionnez au moins un métier.","err"); return; }
-  if(!price || price<=0){ toast("Indiquez votre prix minimum.","err"); return; }
+  const trades = Array.from(
+    document.querySelectorAll("#tradeSelectGrid input:checked")
+  ).map(i => i.value);
+
+  if(!window.__obGps){
+    toast("Merci d'enregistrer votre position GPS.", "err");
+    return;
+  }
+
+  if(!trades.length){
+    toast("Sélectionnez au moins un métier.", "err");
+    return;
+  }
+
+  if(!price || price <= 0){
+    toast("Indiquez votre prix minimum.", "err");
+    return;
+  }
+
   const u = currentUser();
-  u.countryCode=country; u.gps=window.__obGps; u.trades=trades; u.minPrice=price; u.available=true;
-  saveDB(DB);
-  toast("Profil complété !","ok");
+
+  if(!u || !window.supabase){
+    toast("Connexion indisponible.", "error");
+    return;
+  }
+
+  const { error: profileError } = await window.supabase
+    .from("profiles")
+    .update({ country_code: country })
+    .eq("id", u.id);
+
+  if(profileError){
+    console.error("Erreur de mise à jour du pays :", profileError);
+    toast("Impossible d'enregistrer le pays.", "error");
+    return;
+  }
+
+  const { error: artisanError } = await window.supabase
+    .from("artisan_profiles")
+    .update({
+      trades: trades,
+      min_price: Math.round(price),
+      is_available: true,
+      latitude: window.__obGps.lat,
+      longitude: window.__obGps.lng
+    })
+    .eq("user_id", u.id);
+
+  if(artisanError){
+    console.error("Erreur de mise à jour du profil artisan :", artisanError);
+    toast("Impossible d'enregistrer le profil artisan.", "error");
+    return;
+  }
+
+  u.countryCode = country;
+  u.gps = window.__obGps;
+  u.trades = trades;
+  u.minPrice = Math.round(price);
+  u.available = true;
+
+  toast("Profil complété !", "ok");
   go("/artisan");
-  setTimeout(()=>openSubscriptionModal("artisan"), 300);
+  setTimeout(() => openSubscriptionModal("artisan"), 300);
 }
 
 async function renderArtisanHome(main, u){
