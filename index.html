@@ -1891,16 +1891,27 @@ function setRating(v){
   window.__ratingValue=v;
   document.querySelectorAll("#ratingStars span").forEach(s=>{ s.classList.toggle("active", parseInt(s.dataset.v)<=v); });
 }
-function submitRating(taskId){
-  const t = DB.tasks.find(x=>x.id===taskId);
-  const artisan = DB.users.find(a=>a.id===t.artisanId);
-  const val = window.__ratingValue||5;
-  t.status="closed"; t.rating=val; t.comment=document.getElementById("ratingComment").value;
-  artisan.rating = ((artisan.rating*artisan.ratingsCount)+val)/(artisan.ratingsCount+1);
-  artisan.ratingsCount += 1;
-  saveDB(DB); closeModal();
-  addNotif(artisan.id, "Nouvelle note reçue", `Vous avez reçu ${val} étoile(s) pour la mission « ${t.trade} ».`);
-  toast("Merci pour votre retour !","ok");
+async function submitRating(taskId){
+  const rating = window.__ratingValue || 5;
+  const comment = document.getElementById("ratingComment").value.trim();
+
+  const { error } = await window.supabase.rpc(
+    "complete_mission_with_review",
+    {
+      p_mission_id: taskId,
+      p_rating: rating,
+      p_comment: comment
+    }
+  );
+
+  if(error){
+    console.error("Erreur lors de la clôture de la mission :", error);
+    toast("Impossible de clôturer la mission. Réessayez.", "err");
+    return;
+  }
+
+  closeModal();
+  toast("Merci pour votre avis !", "ok");
   render();
 }
 
