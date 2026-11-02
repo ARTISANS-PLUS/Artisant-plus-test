@@ -2758,11 +2758,97 @@ async function renderAdminHome(main){
     </table>
   `;
 }
-function renderAdminUsers(main){
-  const users = DB.users.filter(u=>u.role!=="admin");
-  main.innerHTML = `<div class="main-head"><h1>Utilisateurs</h1></div>
-    <table class="table"><thead><tr><th>Nom</th><th>Rôle</th><th>Pays</th><th>Abonnement</th><th>Statut</th><th></th></tr></thead>
-    <tbody>${users.map(u=>`<tr><td>${u.name}<br><span style="color:var(--muted);font-size:.78rem;">${u.email}</span></td><td><span class="pill pill-muted">${u.role}</span></td><td>${COUNTRIES[u.countryCode]?.flag||''} ${COUNTRIES[u.countryCode]?.name||'—'}</td><td>${u.subscription?.status==='active'?`<span class="pill pill-emerald">${u.subscription.plan}</span>`:`<span class="pill pill-clay">inactif</span>`}</td><td>${u.blocked?'<span class="pill pill-clay">Suspendu</span>':'<span class="pill pill-emerald">Actif</span>'}</td><td><button class="btn btn-outline btn-sm" onclick="toggleBlockUser('${u.id}')">${u.blocked?'Réactiver':'Suspendre'}</button></td></tr>`).join("")}</tbody></table>`;
+async function renderAdminUsers(main){
+  main.innerHTML = `
+    <div class="main-head"><h1>Utilisateurs</h1></div>
+    <p>Chargement des utilisateurs...</p>
+  `;
+
+  const { data: users, error } = await window.supabase
+    .from("profiles")
+    .select("*")
+    .neq("role", "admin")
+    .order("created_at", { ascending: false });
+
+  if(error){
+    console.error("Erreur de récupération des utilisateurs :", error);
+    main.innerHTML = "<p>Impossible de charger les utilisateurs.</p>";
+    return;
+  }
+
+  const { data: subscriptions, error: subscriptionError } = await window.supabase
+    .from("subscriptions")
+    .select("*")
+    .in("status", ["active", "trial"])
+    .order("created_at", { ascending: false });
+
+  if(subscriptionError){
+    console.error("Erreur de récupération des abonnements :", subscriptionError);
+  }
+
+  const subscriptionList = subscriptions || [];
+
+  main.innerHTML = `
+    <div class="main-head"><h1>Utilisateurs</h1></div>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Rôle</th>
+          <th>Pays</th>
+          <th>Abonnement</th>
+          <th>Statut</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${(users || []).map(u => {
+          const subscription = subscriptionList.find(s => s.user_id === u.id);
+          const country = COUNTRIES[u.country_code];
+
+          return `
+            <tr>
+              <td>
+                ${u.full_name || "—"}<br>
+                <span style="color:var(--muted);font-size:.78rem;">
+                  ${u.email || ""}
+                </span>
+              </td>
+
+              <td><span class="pill pill-muted">${u.role}</span></td>
+
+              <td>
+                ${country?.flag || ""} ${country?.name || "—"}
+              </td>
+
+              <td>
+                ${subscription
+                  ? `<span class="pill pill-emerald">${subscription.plan_code}</span>`
+                  : `<span class="pill pill-clay">inactif</span>`
+                }
+              </td>
+
+              <td>
+                ${u.is_suspended
+                  ? `<span class="pill pill-clay">Suspendu</span>`
+                  : `<span class="pill pill-emerald">Actif</span>`
+                }
+              </td>
+
+              <td>
+                <button class="btn btn-outline btn-sm"
+                  onclick="toggleBlockUser('${u.id}')">
+                  ${u.is_suspended ? "Réactiver" : "Suspendre"}
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join("")}
+      </tbody>
+    </table>
+  `;
 }
 function toggleBlockUser(id){
   const u = DB.users.find(x=>x.id===id); u.blocked = !u.blocked; saveDB(DB); toast("Statut mis à jour.","ok"); render();
