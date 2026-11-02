@@ -1504,7 +1504,64 @@ async function showSearchResults(trade, clientPos){
       </div>
     `).join("");
 }
- 
+ async function showSearchResults(trade, clientPos){
+  const wrap = document.getElementById("searchResults");
+  wrap.innerHTML = "<p>Recherche des artisans disponibles...</p>";
+
+  const { data: artisans, error } = await window.supabase
+    .from("public_artisan_profiles")
+    .select("*");
+
+  if(error){
+    console.error("Erreur de recherche des artisans :", error);
+    wrap.innerHTML = `<div class="empty-state">Impossible de récupérer les artisans. Réessayez.</div>`;
+    return;
+  }
+
+  const matches = (artisans || [])
+    .filter(a =>
+      a.trades &&
+      a.trades.some(t =>
+        t.toLowerCase().includes(trade.toLowerCase())
+      ) &&
+      a.latitude != null &&
+      a.longitude != null
+    )
+    .map(a => ({
+      ...a,
+      dist: haversine(clientPos, {
+        lat: a.latitude,
+        lng: a.longitude
+      })
+    }))
+    .sort((a,b) => a.dist - b.dist);
+
+  if(!matches.length){
+    wrap.innerHTML = `<div class="empty-state">Aucun artisan disponible trouvé pour ce métier.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = `<h3>${matches.length} artisan(s) trouvé(s)</h3>` +
+    matches.map(a => `
+      <div class="artisan-result">
+        <div class="avatar">${(a.full_name || "A").split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
+        <div class="info">
+          <h4>${a.full_name || "Artisan"} ${a.is_verified ? '<span class="badge-verified">✔ Vérifié</span>' : ''}</h4>
+          <span class="stars">${starsHtml(a.rating || 0)}</span>
+          <span style="font-size:.78rem;color:var(--muted);">(${a.rating_count || 0} avis)</span><br>
+          <span style="font-size:.82rem;">${a.trades.join(", ")}</span> ·
+          <span class="mono" style="font-size:.8rem;">à partir de ${fmtMoney(a.min_price || 0)}</span>
+        </div>
+        <div style="text-align:right;">
+          <div class="dist-badge">${a.dist.toFixed(1)} km</div>
+          <button class="btn btn-primary btn-sm" style="margin-top:8px;"
+            onclick="requestArtisan('${a.id}','${trade}')">
+            Demander
+          </button>
+        </div>
+      </div>
+    `).join("");
+}
 async function requestArtisan(artisanId, trade){
   const u = currentUser();
 
