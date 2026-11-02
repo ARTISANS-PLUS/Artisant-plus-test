@@ -858,9 +858,10 @@ async function submitClientRegister(){
     const { data, error } = await window.supabase.auth.signUp({
       email: email,
       password: pass,
-      options: {
-        data: {
-          role: "client",
+    options: {
+  emailRedirectTo: "https://artisans-plus.github.io/Artisant-plus-test/",
+  data: {
+    role: "client",
           full_name: name,
           phone: country + phone
         }
