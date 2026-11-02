@@ -1451,15 +1451,57 @@ async function showSearchResults(trade, clientPos){
     </div>
   `).join("");
 }
-function requestArtisan(artisanId, trade){
+async function requestArtisan(artisanId, trade){
   const u = currentUser();
-  const artisan = DB.users.find(a=>a.id===artisanId);
-  const task = {id:uid("task"), clientId:u.id, artisanId, trade, status:"pending",
-    clientGPS:u.gps, artisanGPS:artisan.gps, price:artisan.minPrice, createdAt:Date.now(), route:0};
-  DB.tasks.push(task); saveDB(DB);
-  addNotif(artisanId, "Nouvelle demande de mission", `${u.name} recherche un(e) ${trade} près de sa position.`);
-  toast("Demande envoyée à "+artisan.name+" ! En attente de sa réponse.", "ok");
-  go("/client/task/"+task.id);
+
+  if(!u || !window.supabase){
+    toast("Utilisateur ou service Supabase indisponible.", "err");
+    return;
+  }
+
+  try {
+    const { data: artisan, error: artisanError } = await window.supabase
+      .from("public_artisan_profiles")
+      .select("id, full_name, min_price")
+      .eq("id", artisanId)
+      .single();
+
+    if(artisanError || !artisan){
+      console.error("Erreur de récupération de l'artisan :", artisanError);
+      toast("Impossible de récupérer les informations de cet artisan.", "err");
+      return;
+    }
+
+    const { data: mission, error } = await window.supabase
+      .from("missions")
+      .insert({
+        client_id: u.id,
+        artisan_id: artisanId,
+        title: trade,
+        description: "",
+        trade: trade,
+        status: "requested",
+        client_latitude: u.gps?.lat ?? null,
+        client_longitude: u.gps?.lng ?? null,
+        quoted_amount: artisan.min_price
+      })
+      .select()
+      .single();
+
+    if(error){
+      console.error("Erreur de création de la mission :", error);
+      toast("Impossible d'envoyer la demande.", "err");
+      return;
+    }
+
+    toast("Demande envoyée à " + artisan.full_name + " !", "ok");
+
+    go("/client/task/" + mission.id);
+
+  } catch(error) {
+    console.error(error);
+    toast("Une erreur est survenue lors de l'envoi de la demande.", "err");
+  }
 }
 
 function renderClientTask(main, u, taskId){
