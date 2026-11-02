@@ -2458,14 +2458,111 @@ async function renderArtisanTask(main, u, taskId){
 
   renderTaskActionZone(t, u, "artisan");
 }
-function renderArtisanHistory(main, u){
-  const tasks = DB.tasks.filter(t=>t.artisanId===u.id).sort((a,b)=>b.createdAt-a.createdAt);
-  main.innerHTML = `<div class="main-head"><h1>Historique des missions</h1></div>
-    <table class="table"><thead><tr><th>Métier</th><th>Client</th><th>Statut</th><th>Gain net</th><th>Note</th><th></th></tr></thead>
-    <tbody>${tasks.map(t=>{
-      const c = DB.users.find(x=>x.id===t.clientId);
-      return `<tr><td>${t.trade}</td><td>${c.name}</td><td><span class="pill pill-muted">${statusLabel(t.status)}</span></td><td class="mono">${t.commission?fmtMoney(t.price-t.commission):'—'}</td><td>${t.rating?starsHtml(t.rating):'—'}</td><td><button class="btn btn-outline btn-sm" onclick="go('/artisan/task/${t.id}')">Voir</button></td></tr>`;
-    }).join("") || `<tr><td colspan="6" style="text-align:center;color:var(--muted);">Aucune mission pour le moment.</td></tr>`}</tbody></table>`;
+async function renderArtisanHistory(main, u){
+  main.innerHTML = `
+    <div class="main-head">
+      <h1>Historique des missions</h1>
+    </div>
+    <p>Chargement de votre historique...</p>
+  `;
+
+  const { data: missions, error } = await window.supabase
+    .from("missions")
+    .select("*")
+    .eq("artisan_id", u.id)
+    .order("requested_at", { ascending: false });
+
+  if(error){
+    console.error("Erreur de récupération de l'historique :", error);
+    main.innerHTML = "<p>Impossible de charger votre historique.</p>";
+    return;
+  }
+
+  const statusMap = {
+    requested: "pending",
+    accepted: "accepted",
+    en_route: "enroute",
+    arrived: "arrived",
+    in_progress: "in_progress",
+    completed: "closed",
+    cancelled: "cancelled"
+  };
+
+  const tasks = await Promise.all((missions || []).map(async mission => {
+    const contact = await getMissionContact(mission.id);
+
+    const { data: review, error: reviewError } = await window.supabase
+      .from("reviews")
+      .select("rating")
+      .eq("mission_id", mission.id)
+      .maybeSingle();
+
+    if(reviewError){
+      console.error("Erreur de récupération de la note :", reviewError);
+    }
+
+    const amount = mission.final_amount ?? mission.quoted_amount;
+    const commission = mission.platform_commission;
+
+    return {
+      id: mission.id,
+      trade: mission.trade,
+      clientName: contact?.full_name || "Client",
+      status: statusMap[mission.status] || mission.status,
+      netGain: amount !== null && amount !== undefined && commission !== null
+        ? Math.max(0, amount - commission)
+        : null,
+      rating: review?.rating || null,
+      date: mission.requested_at
+    };
+  }));
+
+  main.innerHTML = `
+    <div class="main-head">
+      <h1>Historique des missions</h1>
+    </div>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Métier</th>
+          <th>Client</th>
+          <th>Statut</th>
+          <th>Gain net</th>
+          <th>Note</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${tasks.map(t => `
+          <tr>
+            <td>${t.trade}</td>
+            <td>${t.clientName}</td>
+            <td>
+              <span class="pill pill-muted">${statusLabel(t.status)}</span>
+            </td>
+            <td class="mono">
+              ${t.netGain !== null ? fmtMoney(t.netGain) : "—"}
+            </td>
+            <td>${t.rating ? starsHtml(t.rating) : "—"}</td>
+            <td>
+              <button class="btn btn-outline btn-sm"
+                onclick="go('/artisan/task/${t.id}')">
+                Voir
+              </button>
+            </td>
+          </tr>
+        `).join("") || `
+          <tr>
+            <td colspan="6" style="text-align:center;color:var(--muted);">
+              Aucune mission pour le moment.
+            </td>
+          </tr>
+        `}
+      </tbody>
+    </table>
+  `;
 }
 function renderArtisanProfile(main, u){
   main.innerHTML = `<div class="main-head"><h1>Mon profil artisan</h1></div>
