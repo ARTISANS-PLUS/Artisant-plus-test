@@ -2095,15 +2095,10 @@ function openWithdrawModal(){
   <button class="btn btn-emerald btn-block" onclick="confirmWithdraw()">Confirmer le retrait</button>`);
 }
 function confirmWithdraw(){
-  const amt = parseFloat(document.getElementById("wd_amt").value);
-  const u = currentUser();
-  if(!amt||amt<=0){ toast("Montant invalide.","err"); return; }
-  if(amt>u.wallet.balance){ toast("Solde insuffisant.","err"); return; }
-  if(!__selectedPM){ toast("Choisissez une méthode.","err"); return; }
-  u.wallet.balance -= amt; saveDB(DB); __selectedPM=null; closeModal();
-  toast("Retrait de "+fmtMoney(amt)+" initié.","ok"); render();
+  toast("Les retraits ne sont pas encore disponibles.", "error");
+  __selectedPM = null;
+  closeModal();
 }
-
 /* ---------------- ARTISAN VIEWS ---------------- */
 function renderArtisanOnboarding(main, u){
   const countryOpts = Object.entries(COUNTRIES).map(([k,c])=>`<option value="${k}" ${u.countryCode===k?'selected':''}>${c.flag} ${c.name}</option>`).join("");
