@@ -1504,21 +1504,7 @@ async function showSearchResults(trade, clientPos){
       </div>
     `).join("");
 }
-  wrap.innerHTML = `<h3>${matches.length} artisan(s) trouvé(s)</h3>` + matches.map(a=>`
-    <div class="artisan-result">
-      <div class="avatar">${a.name.split(" ").map(w=>w[0]).join("").slice(0,2)}</div>
-      <div class="info">
-        <h4>${a.name} ${a.verified?'<span class="badge-verified">✔ Vérifié</span>':''}</h4>
-        <span class="stars">${starsHtml(a.rating)}</span> <span style="font-size:.78rem;color:var(--muted);">(${a.ratingsCount} avis)</span><br>
-        <span style="font-size:.82rem;">${a.trades.join(", ")}</span> · <span class="mono" style="font-size:.8rem;">à partir de ${fmtMoney(a.minPrice)}</span>
-      </div>
-      <div style="text-align:right;">
-        <div class="dist-badge">${a.dist.toFixed(1)} km</div>
-        <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="requestArtisan('${a.id}','${trade}')">Demander</button>
-      </div>
-    </div>
-  `).join("");
-}
+ 
 async function requestArtisan(artisanId, trade){
   const u = currentUser();
 
