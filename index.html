@@ -1741,26 +1741,95 @@ function startRouteSimulation(t){
 function renderTaskActionZone(t, u, viewer){
   const zone = document.getElementById("taskActionZone");
   if(!zone) return;
+
   let html = "";
-  if(viewer==="client"){
-    if(t.status==="pending") html = `<p style="margin-top:16px;">En attente de la réponse de l'artisan…</p>`;
-    if(["accepted","enroute"].includes(t.status)){
-      html = `<div style="margin-top:16px;"><div class="progress-bar"><div id="routeProgressBar" style="width:${t.route||0}%"></div></div><p id="routeEta" class="mono" style="font-size:.82rem;">Trajet en cours…</p></div>`;
+
+  if(viewer === "client"){
+    if(t.status === "pending"){
+      html = `<p style="margin-top:16px;">En attente de la réponse de l'artisan…</p>`;
     }
-    if(t.status==="arrived") html = `<div class="card" style="background:rgba(232,163,61,.12); margin-top:16px;"><b>🔔 L'artisan est arrivé !</b><p>Merci de sortir à la devanture pour l'accueillir.</p><button class="btn btn-primary" onclick="startPrestation('${t.id}')">Confirmer le début de la prestation</button></div>`;
-    if(t.status==="in_progress") html = `<div class="card" style="margin-top:16px;"><b>Prestation en cours…</b><p>Une fois le travail terminé, procédez au paiement depuis votre portefeuille.</p><button class="btn btn-emerald" onclick="openPayTaskModal('${t.id}')">💳 Payer l'artisan (${fmtMoney(t.price)})</button></div>`;
-    if(t.status==="paid") html = `<div class="card" style="margin-top:16px;"><b>✅ Paiement effectué</b><p>Merci de clôturer la tâche et de noter la prestation.</p><button class="btn btn-dark" onclick="openRatingModal('${t.id}')">Clôturer & noter</button></div>`;
-    if(t.status==="closed") html = `<div class="card" style="margin-top:16px;"><b>Tâche clôturée ✔</b><p>Merci d'avoir utilisé Artisans+.</p></div>`;
+
+    if(["accepted", "enroute"].includes(t.status)){
+      html = `<p style="margin-top:16px;">L'artisan prépare son intervention.</p>`;
+    }
+
+    if(t.status === "arrived"){
+      html = `
+        <div class="card" style="background:rgba(232,163,61,.12); margin-top:16px;">
+          <b>🔔 L'artisan est arrivé !</b>
+          <p>Merci de sortir à la devanture pour l'accueillir.</p>
+          <button class="btn btn-primary" onclick="startPrestation('${t.id}')">
+            Confirmer le début de la prestation
+          </button>
+        </div>
+      `;
+    }
+
+    if(t.status === "in_progress"){
+      html = `
+        <div class="card" style="margin-top:16px;">
+          <b>Prestation en cours…</b>
+          <p>Le paiement réel sera disponible lorsque son intégration sera terminée.</p>
+          <p>Après la prestation, vous pourrez clôturer la mission et donner votre avis.</p>
+        </div>
+      `;
+    }
+
+    if(t.status === "closed"){
+      html = `
+        <div class="card" style="margin-top:16px;">
+          <b>Mission clôturée ✔</b>
+          <p>Merci d'avoir utilisé Artisans+.</p>
+        </div>
+      `;
+    }
+
+    if(t.status === "cancelled"){
+      html = `<p style="margin-top:16px;">Cette mission a été annulée ou refusée.</p>`;
+    }
+
   } else {
-    if(t.status==="pending") html = `<div style="margin-top:16px; display:flex; gap:10px;"><button class="btn btn-emerald" onclick="acceptTask('${t.id}')">Accepter la mission</button><button class="btn btn-outline" onclick="declineTask('${t.id}')">Refuser</button></div>`;
-    if(["accepted","enroute"].includes(t.status)){
-      html = `<div style="margin-top:16px;"><div class="progress-bar"><div id="routeProgressBar" style="width:${t.route||0}%"></div></div><button class="btn btn-primary" style="margin-top:10px;" onclick="markArrived('${t.id}')">📍 Notifier mon arrivée</button></div>`;
+    if(t.status === "pending"){
+      html = `
+        <div style="margin-top:16px; display:flex; gap:10px;">
+          <button class="btn btn-emerald" onclick="acceptTask('${t.id}')">Accepter la mission</button>
+          <button class="btn btn-outline" onclick="declineTask('${t.id}')">Refuser</button>
+        </div>
+      `;
     }
-    if(t.status==="arrived") html = `<p style="margin-top:16px;">En attente de la confirmation du client pour démarrer la prestation…</p>`;
-    if(t.status==="in_progress") html = `<p style="margin-top:16px;">Prestation en cours. En attente du paiement du client.</p>`;
-    if(t.status==="paid") html = `<div class="card" style="margin-top:16px;"><b>💰 Paiement reçu</b><p>En attente de la clôture et de la note du client.</p></div>`;
-    if(t.status==="closed") html = `<div class="card" style="margin-top:16px;"><b>Mission clôturée ✔</b>${t.rating?`<p>Note reçue : ${starsHtml(t.rating)}</p>`:""}</div>`;
+
+    if(["accepted", "enroute"].includes(t.status)){
+      html = `
+        <div style="margin-top:16px;">
+          <p>Vous pouvez notifier le client de votre arrivée lorsque vous êtes sur place.</p>
+          <button class="btn btn-primary" style="margin-top:10px;" onclick="markArrived('${t.id}')">
+            📍 Notifier mon arrivée
+          </button>
+        </div>
+      `;
+    }
+
+    if(t.status === "arrived"){
+      html = `<p style="margin-top:16px;">En attente de la confirmation du client pour démarrer la prestation…</p>`;
+    }
+
+    if(t.status === "in_progress"){
+      html = `<p style="margin-top:16px;">Prestation en cours. Le paiement réel n'est pas encore intégré.</p>`;
+    }
+
+    if(t.status === "closed"){
+      html = `
+        <div class="card" style="margin-top:16px;">
+          <b>Mission clôturée ✔</b>
+        </div>
+      `;
+    }
+
+    if(t.status === "cancelled"){
+      html = `<p style="margin-top:16px;">Cette mission a été refusée ou annulée.</p>`;
+    }
   }
+
   zone.innerHTML = html;
 }
 function startPrestation(taskId){
