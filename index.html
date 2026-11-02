@@ -1546,7 +1546,19 @@ async function requestArtisan(artisanId, trade){
     toast("Une erreur est survenue lors de l'envoi de la demande.", "err");
   }
 }
+async function getMissionContact(missionId){
+  const { data, error } = await window.supabase
+    .rpc("get_mission_contact", {
+      p_mission_id: missionId
+    });
 
+  if(error){
+    console.error("Erreur de récupération du contact :", error);
+    return null;
+  }
+
+  return data && data.length ? data[0] : null;
+}
 function renderClientTask(main, u, taskId){
   const t = DB.tasks.find(x=>x.id===taskId);
   if(!t){ main.innerHTML="<p>Tâche introuvable.</p>"; return; }
