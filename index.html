@@ -543,7 +543,7 @@ async function loadUserProfile(userId){
     }
   }
 
-  const { data: subscription, error: subscriptionError } = await window.supabase
+ const { data: subscription, error: subscriptionError } = await window.supabase
     .from("subscriptions")
     .select("*")
     .eq("user_id", userId)
@@ -565,12 +565,7 @@ async function loadUserProfile(userId){
         : null,
       method: subscription.provider
     };
-  } else {
-    user.subscription = {
-      status: "inactive"
-    };
-  }
-
+  } 
   AUTH_USER = user;
   return user;
 }
