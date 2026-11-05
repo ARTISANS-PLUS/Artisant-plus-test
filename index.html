@@ -1695,16 +1695,16 @@ async function renderClientTask(main, u, taskId){
 
   const artisan = artisanResult.data || {};
 
-  const statusMap = {
-    requested: "pending",
-    accepted: "accepted",
-    en_route: "enroute",
-    arrived: "arrived",
-    in_progress: "in_progress",
-    completed: "closed",
-    cancelled: "cancelled"
-  };
-
+const statusMap = {
+  requested: "pending",
+  accepted: "accepted",
+  en_route: "enroute",
+  arrived: "arrived",
+  in_progress: "in_progress",
+  awaiting_confirmation: "awaiting_confirmation",
+  completed: "closed",
+  cancelled: "cancelled"
+};
   const t = {
     id: mission.id,
     trade: mission.trade,
