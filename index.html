@@ -2023,15 +2023,6 @@ async function confirmTaskCompletion(taskId){
   render();
 }
 
-  if(error){
-    console.error("Erreur lors de la clôture de la mission :", error);
-    toast("Impossible de confirmer la clôture de la mission.", "err");
-    return;
-  }
-
-  toast("Mission clôturée avec succès. Merci !", "ok");
-  render();
-}
 function openPayTaskModal(taskId){
   openModal(`
     <button class="modal-close" onclick="closeModal()">✕</button>
