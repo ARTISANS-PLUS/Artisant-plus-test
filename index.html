@@ -1871,7 +1871,17 @@ function renderTaskActionZone(t, u, viewer){
         </div>
       `;
     }
-
+if(t.status === "awaiting_confirmation"){
+  html = `
+    <div class="card" style="margin-top:16px; background:rgba(232,163,61,.12);">
+      <b>🔔 L'artisan a terminé la prestation !</b>
+      <p>Veuillez confirmer que le travail a bien été effectué.</p>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="confirmTaskCompletion('${t.id}')">
+        Confirmer la clôture de la mission
+      </button>
+    </div>
+  `;
+}
     if(t.status === "closed"){
       html = `
         <div class="card" style="margin-top:16px;">
