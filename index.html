@@ -532,7 +532,18 @@ async function loadUserProfile(userId){
       user.rating = artisanProfile.rating;
       user.ratingsCount = artisanProfile.rating_count;
       user.city = artisanProfile.city || null;
+const { data: reviews, error: reviewsError } = await window.supabase
+  .from("reviews")
+  .select("rating, comment, created_at")
+  .eq("artisan_id", userId)
+  .order("created_at", { ascending: false });
 
+if(reviewsError){
+  console.error("Erreur de récupération des avis :", reviewsError);
+  user.reviews = [];
+} else {
+  user.reviews = reviews || [];
+}
       user.gps = (
         artisanProfile.latitude != null &&
         artisanProfile.longitude != null
