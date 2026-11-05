@@ -2028,11 +2028,20 @@ async function confirmTaskCompletion(taskId){
     }
   );
 
-  if(error){
-    console.error("Erreur lors de l'enregistrement de l'avis :", error);
-    toast("Impossible d'enregistrer votre avis.", "err");
-    return;
+ if(error){
+  console.error("Erreur lors de l'enregistrement de l'avis :", error);
+
+  if(
+    error.code === "23505" ||
+    (error.message || "").toLowerCase().includes("duplicate")
+  ){
+    toast("Cette mission a déjà reçu un avis.", "err");
+  } else {
+    toast("Impossible d'enregistrer votre avis. Veuillez réessayer.", "err");
   }
+
+  return;
+}
 
   toast("Mission clôturée et avis enregistré avec succès !", "ok");
   render();
