@@ -1910,9 +1910,17 @@ function renderTaskActionZone(t, u, viewer){
       html = `<p style="margin-top:16px;">En attente de la confirmation du client pour démarrer la prestation…</p>`;
     }
 
-    if(t.status === "in_progress"){
-      html = `<p style="margin-top:16px;">Prestation en cours. Le paiement réel n'est pas encore intégré.</p>`;
-    }
+ if(t.status === "in_progress"){
+  html = `
+    <div class="card" style="margin-top:16px;">
+      <b>Prestation en cours</b>
+      <p>Lorsque votre travail est terminé, cliquez sur le bouton ci-dessous.</p>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="finishPrestation('${t.id}')">
+        Terminer la prestation
+      </button>
+    </div>
+  `;
+}
 
     if(t.status === "closed"){
       html = `
