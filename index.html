@@ -1984,13 +1984,44 @@ async function finishPrestation(taskId){
   render();
 }
 async function confirmTaskCompletion(taskId){
+
+  const ratingInput = prompt(
+    "Quelle note souhaitez-vous donner à l'artisan ? (1 à 5 étoiles)"
+  );
+
+  if(ratingInput === null) return;
+
+  const rating = Number(ratingInput);
+
+  if(!Number.isInteger(rating) || rating < 1 || rating > 5){
+    toast("Veuillez choisir une note entre 1 et 5.", "err");
+    return;
+  }
+
+  const comment = prompt(
+    "Votre commentaire sur la prestation (facultatif) :"
+  );
+
+  if(comment === null) return;
+
   const { error } = await window.supabase.rpc(
-    "update_mission_status",
+    "complete_mission_with_review",
     {
       p_mission_id: taskId,
-      p_new_status: "completed"
+      p_rating: rating,
+      p_comment: comment
     }
   );
+
+  if(error){
+    console.error("Erreur lors de l'enregistrement de l'avis :", error);
+    toast("Impossible d'enregistrer votre avis.", "err");
+    return;
+  }
+
+  toast("Mission clôturée et avis enregistré avec succès !", "ok");
+  render();
+}
 
   if(error){
     console.error("Erreur lors de la clôture de la mission :", error);
