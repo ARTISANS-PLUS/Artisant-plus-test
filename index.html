@@ -1983,6 +1983,24 @@ async function finishPrestation(taskId){
   toast("Fin de prestation signalée. En attente de confirmation du client.", "ok");
   render();
 }
+async function confirmTaskCompletion(taskId){
+  const { error } = await window.supabase.rpc(
+    "update_mission_status",
+    {
+      p_mission_id: taskId,
+      p_new_status: "completed"
+    }
+  );
+
+  if(error){
+    console.error("Erreur lors de la clôture de la mission :", error);
+    toast("Impossible de confirmer la clôture de la mission.", "err");
+    return;
+  }
+
+  toast("Mission clôturée avec succès. Merci !", "ok");
+  render();
+}
 function openPayTaskModal(taskId){
   openModal(`
     <button class="modal-close" onclick="closeModal()">✕</button>
