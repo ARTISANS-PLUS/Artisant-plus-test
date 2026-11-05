@@ -616,6 +616,7 @@ async function initializeSupabaseAuth(){
     ){
       if(session && session.user){
         loadUserProfile(session.user.id).then(() => {
+           subscribeToNotifications(session.user.id);
           AUTH_READY = true;
           render();
         });
