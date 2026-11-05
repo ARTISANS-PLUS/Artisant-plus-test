@@ -668,16 +668,19 @@ function subscribeToNotifications(userId){
         table: "notifications",
         filter: "user_id=eq." + userId
       },
-      (payload) => {
-        const notification = payload.new;
+async (payload) => {
+  const notification = payload.new;
 
-        toast(
-          (notification.title || "Nouvelle notification") +
-          " : " +
-          (notification.message || ""),
-          "success"
-        );
-      }
+  toast(
+    (notification.title || "Nouvelle notification") +
+    " : " +
+    (notification.message || ""),
+    "success"
+  );
+
+  await loadUserProfile(userId);
+  render();
+}
     )
     .subscribe((status) => {
       console.log("Écoute des notifications :", status);
