@@ -1361,7 +1361,17 @@ function taskRowClient(t){
   </div>`;
 }
 function statusLabel(s){
-  return {pending:"En attente d'acceptation", accepted:"Accepté · en route", enroute:"En route", arrived:"Artisan arrivé", in_progress:"Prestation en cours", paid:"Payé — à clôturer", closed:"Clôturé", cancelled:"Annulé"}[s]||s;
+  return {
+    pending: "En attente d'acceptation",
+    accepted: "Accepté · en route",
+    enroute: "En route",
+    arrived: "Artisan arrivé",
+    in_progress: "Prestation en cours",
+    awaiting_confirmation: "En attente de confirmation du client",
+    paid: "Payé — à clôturer",
+    closed: "Clôturé",
+    cancelled: "Annulé"
+  }[s] || s;
 }
 
 function renderClientSearch(main, u){
