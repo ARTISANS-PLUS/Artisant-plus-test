@@ -1955,6 +1955,24 @@ async function startPrestation(taskId){
   toast("La prestation a commencé.", "ok");
   render();
 }
+async function finishPrestation(taskId){
+  const { error } = await window.supabase.rpc(
+    "update_mission_status",
+    {
+      p_mission_id: taskId,
+      p_new_status: "awaiting_confirmation"
+    }
+  );
+
+  if(error){
+    console.error("Erreur lors de la fin de la prestation :", error);
+    toast("Impossible de signaler la fin de la prestation.", "err");
+    return;
+  }
+
+  toast("Fin de prestation signalée. En attente de confirmation du client.", "ok");
+  render();
+}
 function openPayTaskModal(taskId){
   openModal(`
     <button class="modal-close" onclick="closeModal()">✕</button>
