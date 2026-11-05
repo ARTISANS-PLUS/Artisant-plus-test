@@ -605,11 +605,18 @@ async function initializeSupabaseAuth(){
   render();
 
   window.supabase.auth.onAuthStateChange((event, session) => {
-    if(event === "SIGNED_OUT"){
-      AUTH_USER = null;
-      AUTH_READY = true;
-      render();
-    } else if(
+  if(event === "SIGNED_OUT"){
+
+  if(notificationChannel){
+    window.supabase.removeChannel(notificationChannel);
+    notificationChannel = null;
+    notificationChannelUserId = null;
+  }
+
+  AUTH_USER = null;
+  AUTH_READY = true;
+  render();
+}else if(
       event === "SIGNED_IN" ||
       event === "TOKEN_REFRESHED" ||
       event === "USER_UPDATED"
