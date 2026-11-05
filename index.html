@@ -631,6 +631,49 @@ function toast(msg, type){
   document.getElementById("toastWrap").appendChild(el);
   setTimeout(()=>el.remove(), 4200);
 }
+let notificationChannel = null;
+let notificationChannelUserId = null;
+
+function subscribeToNotifications(userId){
+
+  if(!userId || !window.supabase) return;
+
+  if(notificationChannelUserId === userId && notificationChannel){
+    return;
+  }
+
+  if(notificationChannel){
+    window.supabase.removeChannel(notificationChannel);
+    notificationChannel = null;
+  }
+
+  notificationChannelUserId = userId;
+
+  notificationChannel = window.supabase
+    .channel("notifications-" + userId)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: "user_id=eq." + userId
+      },
+      (payload) => {
+        const notification = payload.new;
+
+        toast(
+          (notification.title || "Nouvelle notification") +
+          " : " +
+          (notification.message || ""),
+          "success"
+        );
+      }
+    )
+    .subscribe((status) => {
+      console.log("Écoute des notifications :", status);
+    });
+}
 function haversine(a,b){
   const R=6371, toRad=x=>x*Math.PI/180;
   const dLat=toRad(b.lat-a.lat), dLng=toRad(b.lng-a.lng);
