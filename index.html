@@ -629,10 +629,14 @@ function haversine(a,b){
 function fmtMoney(n, cur){ return Number(n).toLocaleString('fr-FR')+" "+(cur||"FCFA"); }
 function starsHtml(rating){
   const full = Math.round(rating);
-  let s=""; for(let i=1;i<=5;i++) s += i<=full ? "★" : "☆";
+  let s = "";
+  for(let i=1;i<=5;i++){
+    s += i<=full
+      ? '<span style="color:#D4AF37;">★</span>'
+      : '<span style="color:#D3D3D3;">☆</span>';
+  }
   return s;
 }
-
 function scrollToId(id){ const el=document.getElementById(id); if(el) el.scrollIntoView({behavior:'smooth'}); }
 
 /* ---------- ROUTING ---------- */
