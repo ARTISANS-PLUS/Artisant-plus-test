@@ -2398,7 +2398,26 @@ async function renderArtisanHome(main, u){
       <div class="stat-box"><b>${fmtMoney(walletBalance)}</b><span>Solde portefeuille</span></div>
       <div class="stat-box"><b>${u.rating ? u.rating.toFixed(1) : "—"} ★</b><span>${u.ratingsCount || 0} avis</span></div>
     </div>
+<h3>Avis de mes clients</h3>
 
+${u.reviews && u.reviews.length
+  ? u.reviews.map(r => `
+    <div class="artisan-result">
+      <div class="info">
+        <div class="stars">${starsHtml(r.rating)}</div>
+        <p>${String(r.comment || "Aucun commentaire").replace(/[&<>"']/g, c => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;"
+        }[c]))}</p>
+        <small>${new Date(r.created_at).toLocaleDateString("fr-FR")}</small>
+      </div>
+    </div>
+  `).join("")
+  : `<div class="empty-state">Aucun avis reçu pour le moment.</div>`
+}
     <h3>Demandes en attente</h3>
 
     ${pending.length
