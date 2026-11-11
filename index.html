@@ -3223,10 +3223,11 @@ async function renderAdminTasks(main){
             <td class="mono">
               ${fmtMoney(t.final_amount ?? t.quoted_amount ?? 0)}
             </td>
-            <td class="mono">
-              ${t.platform_commission != null
-                ? fmtMoney(t.platform_commission)
-                : "—"}
+                      <td>
+              <button class="btn btn-sm"
+                onclick="viewAdminTask('${t.id}')">
+                Détails
+              </button>
             </td>
           </tr>
         `).join("") || `
