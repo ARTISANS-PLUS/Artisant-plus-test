@@ -1310,7 +1310,10 @@ async function toggleNotifDropdown(){
 
   const content = (notifs || []).length
     ? notifs.map(n => `
-        <div class="dropdown item">
+        <div class="dropdown item"
+  ${n.kind === "complaint" && n.complaint_id
+    ? `onclick="viewComplaintNotification('${n.complaint_id}')" style="cursor:pointer;"`
+    : ""}>
           <b>${n.title}</b>
           <div>${n.message || ""}</div>
           <div style="font-size:.7rem;color:var(--muted);margin-top:4px;">
