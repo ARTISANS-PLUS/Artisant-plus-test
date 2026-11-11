@@ -3438,6 +3438,7 @@ async function renderAdminTasks(main){
           <th>Motif</th>
           <th>Statut</th>
           <th>Description</th>
+          <th>Actions</th>
         </tr>
       </thead>
 
@@ -3449,6 +3450,12 @@ async function renderAdminTasks(main){
             <td>${safe(c.reason)}</td>
             <td>${safe(statusMap[c.status] || c.status)}</td>
             <td>${safe(c.description)}</td>
+            <td>
+  <button class="btn btn-sm"
+    onclick="viewAdminComplaint('${c.id}')">
+    Traiter
+  </button>
+</td>
           </tr>
         `).join("") || `
           <tr>
