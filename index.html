@@ -2028,7 +2028,35 @@ if(t.status === "awaiting_confirmation"){
 
   zone.innerHTML = html;
 }
-async function startPrestation(taskId){
+
+   function openComplaintForm(taskId){
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>Signaler un problème</h3>
+    <p>Expliquez-nous le problème rencontré concernant cette mission.</p>
+
+    <label for="complaint_reason">Motif de la réclamation</label>
+    <select id="complaint_reason" class="input">
+      <option value="">Choisir un motif</option>
+      <option value="Travail non conforme">Travail non conforme</option>
+      <option value="Prestation non terminée">Prestation non terminée</option>
+      <option value="Retard ou absence">Retard ou absence</option>
+      <option value="Comportement inapproprié">Comportement inapproprié</option>
+      <option value="Désaccord">Désaccord</option>
+      <option value="Autre">Autre problème</option>
+    </select>
+
+    <label for="complaint_description">Description du problème</label>
+    <textarea id="complaint_description" class="input" rows="5"
+      placeholder="Décrivez précisément le problème rencontré..."></textarea>
+
+    <button class="btn btn-primary" style="margin-top:16px;width:100%;"
+      onclick="submitComplaint('${taskId}')">
+      Envoyer la réclamation
+    </button>
+  `);
+}
+   async function startPrestation(taskId){
   const { error } = await window.supabase.rpc(
     "update_mission_status",
     {
