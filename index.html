@@ -1273,7 +1273,12 @@ function buildSidebar(u, path){
       ["/artisan/history","🧾","Historique"],["/artisan/wallet","👛","Portefeuille"],["/artisan/profile","🛠️","Mon profil"]
     ];
   } else {
-    links = [["/admin","📊","Vue d'ensemble"],["/admin/users","👥","Utilisateurs"],["/admin/tasks","🗂️","Tâches"]];
+    links = [
+  ["/admin","📊","Vue d'ensemble"],
+  ["/admin/users","👥","Utilisateurs"],
+  ["/admin/tasks","🗂️","Tâches"],
+  ["/admin/complaints","⚠️","Réclamations"]
+];
   }
   document.getElementById("sidebar").innerHTML = `
     <a class="brand" onclick="go('/')"><svg viewBox="0 0 64 64" width="26" height="26"><circle cx="32" cy="32" r="32" fill="#E8A33D"/><path d="M32 14l6.5 12.9L52 29l-10 9.6L44.5 52 32 45.2 19.5 52 22 38.6 12 29l13.5-2.1z" fill="#141B33"/></svg> Artisans+</a>
