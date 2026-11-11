@@ -2056,6 +2056,41 @@ if(t.status === "awaiting_confirmation"){
     </button>
   `);
 }
+   
+   async function submitComplaint(taskId){
+  const user = currentUser();
+
+  const reason = document.getElementById("complaint_reason").value;
+  const description = document.getElementById("complaint_description").value.trim();
+
+  if(!user){
+    toast("Vous devez être connecté pour envoyer une réclamation.", "err");
+    return;
+  }
+
+  if(!reason || !description){
+    toast("Veuillez choisir un motif et décrire le problème.", "err");
+    return;
+  }
+
+  const { error } = await window.supabase
+    .from("complaints")
+    .insert({
+      mission_id: taskId,
+      reporter_id: user.id,
+      reason: reason,
+      description: description
+    });
+
+  if(error){
+    console.error("Erreur lors de l'envoi de la réclamation :", error);
+    toast("Impossible d'envoyer la réclamation.", "err");
+    return;
+  }
+
+  closeModal();
+  toast("Votre réclamation a bien été envoyée.", "success");
+}
    async function startPrestation(taskId){
   const { error } = await window.supabase.rpc(
     "update_mission_status",
