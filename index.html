@@ -2028,6 +2028,14 @@ if(t.status === "awaiting_confirmation"){
           onclick="openComplaintForm('${t.id}')">
           Signaler un problème
         </button>
+        html += `
+  <div style="margin-top:10px;">
+    <button class="btn btn-outline"
+      onclick="viewMyComplaint('${t.id}')">
+      Suivre ma réclamation
+    </button>
+  </div>
+`;
       </div>
     `;
   }
@@ -2035,6 +2043,69 @@ if(t.status === "awaiting_confirmation"){
   zone.innerHTML = html;
 }
 
+  async function viewMyComplaint(taskId){
+  const user = currentUser();
+
+  if(!user){
+    toast("Vous devez être connecté.", "err");
+    return;
+  }
+
+  const { data: complaints, error } = await window.supabase
+    .from("complaints")
+    .select("*")
+    .eq("mission_id", taskId)
+    .eq("reporter_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if(error){
+    console.error("Erreur de consultation de la réclamation :", error);
+    toast("Impossible de consulter votre réclamation.", "err");
+    return;
+  }
+
+  const complaint = complaints && complaints[0];
+
+  if(!complaint){
+    toast("Aucune réclamation envoyée pour cette mission.", "err");
+    return;
+  }
+
+  const statusLabels = {
+    open: "Nouvelle",
+    under_review: "En cours de traitement",
+    resolved: "Résolue",
+    rejected: "Rejetée"
+  };
+
+  const safe = value => String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h3>Suivi de ma réclamation</h3>
+
+    <p><strong>Motif :</strong> ${safe(complaint.reason)}</p>
+
+    <p><strong>Statut :</strong>
+      ${safe(statusLabels[complaint.status] || complaint.status)}
+    </p>
+
+    <p><strong>Description :</strong></p>
+    <p>${safe(complaint.description)}</p>
+
+    <p><strong>Réponse de l'administration :</strong></p>
+    <p>${complaint.admin_response
+      ? safe(complaint.admin_response)
+      : "L'administration n'a pas encore répondu."}</p>
+  `);
+} 
    function openComplaintForm(taskId){
   openModal(`
     <button class="modal-close" onclick="closeModal()">×</button>
