@@ -1313,9 +1313,11 @@ async function toggleNotifDropdown(){
 const content = (notifs || []).length
   ? notifs.map(n => `
       <div class="dropdown item"
-        ${n.kind === "complaint" && n.complaint_id
-          ? `onclick="viewComplaintNotification('${n.complaint_id}')"`
-          : ""}
+      ${n.kind === "complaint" && n.complaint_id
+  ? `onclick="viewComplaintNotification('${n.complaint_id}')"`
+  : n.kind === "mission" && n.mission_id
+  ? `onclick="go('/${currentUser().role === "artisan" ? "artisan" : "client"}/task/${n.mission_id}')"`
+  : ""}
         style="
           display:block;
           width:100%;
