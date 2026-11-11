@@ -3459,7 +3459,7 @@ async function renderAdminTasks(main){
           </tr>
         `).join("") || `
           <tr>
-            <td colspan="5" style="text-align:center;color:var(--muted);">
+            <td colspan="6" style="text-align:center;color:var(--muted);">
               Aucune réclamation pour le moment.
             </td>
           </tr>
@@ -3467,6 +3467,94 @@ async function renderAdminTasks(main){
       </tbody>
     </table>
   `;
+}
+   
+   async function viewAdminComplaint(complaintId){
+  const { data: complaint, error } = await window.supabase
+    .from("complaints")
+    .select("*")
+    .eq("id", complaintId)
+    .single();
+
+  if(error || !complaint){
+    console.error("Erreur de chargement de la réclamation :", error);
+    toast("Impossible de charger cette réclamation.", "err");
+    return;
+  }
+
+  const statusLabels = {
+    open: "Nouvelle",
+    under_review: "En cours de traitement",
+    resolved: "Résolue",
+    rejected: "Rejetée"
+  };
+
+  const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+
+    <h3>Traitement de la réclamation</h3>
+
+    <p><strong>Motif :</strong> ${escapeHtml(complaint.reason)}</p>
+
+    <p><strong>Description :</strong></p>
+    <p>${escapeHtml(complaint.description)}</p>
+
+    <label for="admin_complaint_status">Statut</label>
+    <select id="admin_complaint_status" class="input">
+      ${Object.entries(statusLabels).map(([value, label]) => `
+        <option value="${value}" ${complaint.status === value ? "selected" : ""}>
+          ${label}
+        </option>
+      `).join("")}
+    </select>
+
+    <label for="admin_complaint_response">Réponse de l'administration</label>
+    <textarea id="admin_complaint_response" class="input" rows="5"
+      placeholder="Écrivez votre réponse...">${escapeHtml(complaint.admin_response || "")}</textarea>
+
+    <button class="btn btn-primary" style="margin-top:16px;width:100%;"
+      onclick="saveAdminComplaint('${complaint.id}')">
+      Enregistrer le traitement
+    </button>
+  `);
+}
+  async function saveAdminComplaint(complaintId){
+  const status = document.getElementById("admin_complaint_status").value;
+  const response = document.getElementById("admin_complaint_response").value.trim();
+
+  const allowedStatuses = ["open", "under_review", "resolved", "rejected"];
+
+  if(!allowedStatuses.includes(status)){
+    toast("Statut invalide.", "err");
+    return;
+  }
+
+  const { error } = await window.supabase
+    .from("complaints")
+    .update({
+      status: status,
+      admin_response: response,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", complaintId);
+
+  if(error){
+    console.error("Erreur lors du traitement de la réclamation :", error);
+    toast("Impossible d'enregistrer le traitement.", "err");
+    return;
+  }
+
+  closeModal();
+  toast("Le traitement de la réclamation a été enregistré.", "success");
+  go("/admin/complaints");
 }
    async function viewAdminTask(taskId){
 
