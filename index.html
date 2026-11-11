@@ -2015,6 +2015,17 @@ if(t.status === "awaiting_confirmation"){
     }
   }
 
+  if(!["closed", "cancelled"].includes(t.status)){
+    html += `
+      <div style="margin-top:16px;">
+        <button class="btn btn-outline"
+          onclick="openComplaintForm('${t.id}')">
+          Signaler un problème
+        </button>
+      </div>
+    `;
+  }
+
   zone.innerHTML = html;
 }
 async function startPrestation(taskId){
