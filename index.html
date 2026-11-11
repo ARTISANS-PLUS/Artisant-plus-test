@@ -2021,26 +2021,22 @@ if(t.status === "awaiting_confirmation"){
     }
   }
 
-  if(!["closed", "cancelled"].includes(t.status)){
-    html += `
-      <div style="margin-top:16px;">
-        <button class="btn btn-outline"
-          onclick="openComplaintForm('${t.id}')">
-          Signaler un problème
-        </button>
-        html += `
-  <div style="margin-top:10px;">
-    <button class="btn btn-outline"
-      onclick="viewMyComplaint('${t.id}')">
-      Suivre ma réclamation
-    </button>
-  </div>
-`;
-      </div>
-    `;
-  }
+ if(!["closed", "cancelled"].includes(t.status)){
+  html += `
+    <div style="margin-top:16px;">
+      <button class="btn btn-outline"
+        onclick="openComplaintForm('${t.id}')">
+        Signaler un problème
+      </button>
 
-  zone.innerHTML = html;
+      <button class="btn btn-outline"
+        style="margin-top:10px;"
+        onclick="viewMyComplaint('${t.id}')">
+        Suivre ma réclamation
+      </button>
+    </div>
+  `;
+}
 }
 
   async function viewMyComplaint(taskId){
