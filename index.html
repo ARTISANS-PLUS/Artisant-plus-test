@@ -1344,6 +1344,66 @@ async function toggleNotifDropdown(){
     }
   }
 }
+   
+async function viewComplaintNotification(complaintId){
+  const user = currentUser();
+
+  if(!user){
+    toast("Vous devez être connecté.", "err");
+    return;
+  }
+
+  const { data: complaint, error } = await window.supabase
+    .from("complaints")
+    .select("*")
+    .eq("id", complaintId)
+    .eq("reporter_id", user.id)
+    .single();
+
+  if(error || !complaint){
+    console.error("Erreur de consultation :", error);
+    toast("Impossible de retrouver cette réclamation.", "err");
+    return;
+  }
+
+  const statusLabels = {
+    open: "Nouvelle",
+    under_review: "En cours de traitement",
+    resolved: "Résolue",
+    rejected: "Rejetée"
+  };
+
+  const safe = value => String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+
+  closeModal();
+
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+
+    <h3>Suivi de ma réclamation</h3>
+
+    <p><strong>Motif :</strong> ${safe(complaint.reason)}</p>
+
+    <p><strong>Statut :</strong>
+      ${safe(statusLabels[complaint.status] || complaint.status)}
+    </p>
+
+    <p><strong>Description :</strong></p>
+    <p>${safe(complaint.description)}</p>
+
+    <p><strong>Réponse de l'administration :</strong></p>
+    <p>${complaint.admin_response
+      ? safe(complaint.admin_response)
+      : "L'administration n'a pas encore répondu."}</p>
+  `);
+}
+
 /* ---------------- CLIENT VIEWS ---------------- */
 async function renderClientHome(main, u){
   main.innerHTML = "<p>Chargement de votre tableau de bord...</p>";
