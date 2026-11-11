@@ -1308,20 +1308,35 @@ async function toggleNotifDropdown(){
     return;
   }
 
+
   const content = (notifs || []).length
     ? notifs.map(n => `
         <div class="dropdown item"
-  ${n.kind === "complaint" && n.complaint_id
-    ? `onclick="viewComplaintNotification('${n.complaint_id}')" style="cursor:pointer;"`
-    : ""}>
+          ${n.kind === "complaint" && n.complaint_id
+            ? `onclick="viewComplaintNotification('${n.complaint_id}')" style="cursor:pointer;"`
+            : ""}
+          style="padding:14px;margin-bottom:10px;border-left:4px solid ${n.kind === "complaint" ? "#E8A33D" : "#3B82F6"};background:${n.read_at ? "var(--card)" : "rgba(232,163,61,0.10)"};border-radius:8px;">
+
+          <div style="font-size:.7rem;color:var(--muted);margin-bottom:5px;">
+            ${n.kind === "complaint" ? "RÉCLAMATION" : "MISSION"}
+            ${!n.read_at ? " • NON LUE" : ""}
+          </div>
+
           <b>${n.title}</b>
+
           <div>${n.message || ""}</div>
-          <div style="font-size:.7rem;color:var(--muted);margin-top:4px;">
+
+          <div style="font-size:.7rem;color:var(--muted);margin-top:6px;">
             ${new Date(n.created_at).toLocaleString("fr-FR")}
           </div>
+
+          ${n.kind === "complaint" && n.complaint_id
+            ? `<div style="font-size:.8rem;margin-top:8px;color:var(--primary);">Consulter la réclamation →</div>`
+            : ""}
         </div>
       `).join("")
     : `<p>Aucune notification pour le moment.</p>`;
+
 
   openModal(
     `<button class="modal-close" onclick="closeModal()">✕</button>
