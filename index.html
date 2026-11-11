@@ -3371,6 +3371,96 @@ async function renderAdminTasks(main){
     </table>
   `;
 }
+   
+   async function renderAdminComplaints(main){
+  main.innerHTML = `
+    <div class="main-head">
+      <h1>Réclamations</h1>
+    </div>
+    <p>Chargement des réclamations...</p>
+  `;
+
+  const { data: complaints, error } = await window.supabase
+    .from("complaints")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if(error){
+    console.error("Erreur de chargement des réclamations :", error);
+    main.innerHTML = "<p>Impossible de charger les réclamations.</p>";
+    return;
+  }
+
+  const list = complaints || [];
+
+  const { data: profiles, error: profilesError } = await window.supabase
+    .from("profiles")
+    .select("id, full_name");
+
+  if(profilesError){
+    console.error("Erreur de chargement des utilisateurs :", profilesError);
+    main.innerHTML = "<p>Impossible de charger les utilisateurs.</p>";
+    return;
+  }
+
+  const users = profiles || [];
+
+  const safe = value => String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+
+  const getName = id =>
+    safe(users.find(user => user.id === id)?.full_name || "—");
+
+  const statusMap = {
+    open: "Nouvelle",
+    under_review: "En cours de traitement",
+    resolved: "Résolue",
+    rejected: "Rejetée"
+  };
+
+  main.innerHTML = `
+    <div class="main-head">
+      <h1>Réclamations</h1>
+    </div>
+
+    <p>Total des réclamations : <strong>${list.length}</strong></p>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Signalée par</th>
+          <th>Motif</th>
+          <th>Statut</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        ${list.map(c => `
+          <tr>
+            <td>${safe(new Date(c.created_at).toLocaleDateString("fr-FR"))}</td>
+            <td>${getName(c.reporter_id)}</td>
+            <td>${safe(c.reason)}</td>
+            <td>${safe(statusMap[c.status] || c.status)}</td>
+            <td>${safe(c.description)}</td>
+          </tr>
+        `).join("") || `
+          <tr>
+            <td colspan="5" style="text-align:center;color:var(--muted);">
+              Aucune réclamation pour le moment.
+            </td>
+          </tr>
+        `}
+      </tbody>
+    </table>
+  `;
+}
    async function viewAdminTask(taskId){
 
   const { data: task, error } = await window.supabase
