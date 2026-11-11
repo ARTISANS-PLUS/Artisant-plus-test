@@ -3241,6 +3241,54 @@ async function renderAdminTasks(main){
     </table>
   `;
 }
+   async function viewAdminTask(taskId){
+
+  const { data: task, error } = await window.supabase
+    .from("missions")
+    .select("*")
+    .eq("id", taskId)
+    .single();
+
+  if(error || !task){
+    console.error("Erreur de récupération de la mission :", error);
+    toast("Impossible de charger les détails de cette mission.", "err");
+    return;
+  }
+
+  const { data: profiles } = await window.supabase
+    .from("profiles")
+    .select("id, full_name")
+    .in("id", [task.client_id, task.artisan_id]);
+
+  const getName = id =>
+    (profiles || []).find(user => user.id === id)?.full_name || "—";
+
+  const statusMap = {
+    requested: "pending",
+    accepted: "accepted",
+    en_route: "enroute",
+    arrived: "arrived",
+    in_progress: "in_progress",
+    awaiting_confirmation: "awaiting_confirmation",
+    completed: "closed",
+    cancelled: "cancelled"
+  };
+
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+
+    <h3>Détails de la mission</h3>
+
+    <p><strong>Métier :</strong> ${task.trade || "—"}</p>
+    <p><strong>Titre :</strong> ${task.title || "—"}</p>
+    <p><strong>Description :</strong> ${task.description || "Aucune description"}</p>
+    <p><strong>Client :</strong> ${getName(task.client_id)}</p>
+    <p><strong>Artisan :</strong> ${getName(task.artisan_id)}</p>
+    <p><strong>Statut :</strong> ${statusLabel(statusMap[task.status] || task.status)}</p>
+    <p><strong>Prix :</strong> ${fmtMoney(task.final_amount ?? task.quoted_amount ?? 0)}</p>
+    <p><strong>Commission :</strong> ${task.platform_commission != null ? fmtMoney(task.platform_commission) : "—"}</p>
+  `);
+}
 </script>
 </body>
 </html>
