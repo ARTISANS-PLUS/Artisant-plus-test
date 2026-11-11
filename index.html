@@ -1252,12 +1252,13 @@ function renderAppShell(path, params){
     if(path==="/artisan/history") return renderArtisanHistory(main, u);
     return renderArtisanHome(main,u);
   }
-  if(u.role==="admin"){
-    if(path==="/admin") return renderAdminHome(main);
-    if(path==="/admin/users") return renderAdminUsers(main);
-    if(path==="/admin/tasks") return renderAdminTasks(main);
-    return renderAdminHome(main);
-  }
+ if(u.role==="admin"){
+  if(path==="/admin") return renderAdminHome(main);
+  if(path==="/admin/users") return renderAdminUsers(main);
+  if(path==="/admin/tasks") return renderAdminTasks(main);
+  if(path==="/admin/complaints") return renderAdminComplaints(main);
+  return renderAdminHome(main);
+}
 }
 
 function buildSidebar(u, path){
