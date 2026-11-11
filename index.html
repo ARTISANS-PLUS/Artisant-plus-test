@@ -2985,6 +2985,25 @@ async function renderAdminHome(main){
   const availableArtisans = artisanProfiles.filter(
     a => a.is_available
   ).length;
+     const pendingTasks = tasks.filter(
+    t => t.status === "requested"
+  ).length;
+
+  const inProgressTasks = tasks.filter(
+    t => t.status === "in_progress"
+  ).length;
+
+  const awaitingConfirmationTasks = tasks.filter(
+    t => t.status === "awaiting_confirmation"
+  ).length;
+
+  const completedTasks = tasks.filter(
+    t => t.status === "completed"
+  ).length;
+
+  const cancelledTasks = tasks.filter(
+    t => t.status === "cancelled"
+  ).length;
 
   const verifiedArtisans = artisanProfiles.filter(
     a => a.is_verified
