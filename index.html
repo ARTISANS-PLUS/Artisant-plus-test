@@ -3027,6 +3027,36 @@ async function renderAdminHome(main){
       <div class="stat-box"><b>${availableArtisans}</b><span>Artisans disponibles</span></div>
       <div class="stat-box"><b>${verifiedArtisans}</b><span>Artisans vérifiés</span></div>
     </div>
+        <h3>Suivi des missions</h3>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <b>${pendingTasks}</b>
+        <span>En attente d'acceptation</span>
+      </div>
+
+      <div class="stat-box">
+        <b>${inProgressTasks}</b>
+        <span>Prestations en cours</span>
+      </div>
+
+      <div class="stat-box">
+        <b>${awaitingConfirmationTasks}</b>
+        <span>En attente de confirmation</span>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <b>${completedTasks}</b>
+        <span>Missions terminées</span>
+      </div>
+
+      <div class="stat-box">
+        <b>${cancelledTasks}</b>
+        <span>Missions annulées</span>
+      </div>
+    </div>
 
     <h3>Répartition par pays</h3>
 
