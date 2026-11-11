@@ -1297,7 +1297,7 @@ async function toggleNotifDropdown(){
 
   const { data: notifs, error } = await window.supabase
     .from("notifications")
-    .select("id, title, message, kind, complaint_id, read_at, created_at")
+    .select("id, title, message, kind, complaint_id, mission_id, read_at, created_at")
     .eq("user_id", u.id)
     .order("created_at", { ascending: false })
     .limit(20);
